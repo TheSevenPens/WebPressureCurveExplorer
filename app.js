@@ -19,7 +19,6 @@
 // ── Parameters ───────────────────────────────────────────────
 
 const DEFAULT_PARAMS = {
-  gain:     1.0,
   softness: 0.0,
   minimum:  0,
   maximum:  1,
@@ -42,7 +41,7 @@ const params = { ...DEFAULT_PARAMS };
 // then clamped to [minimum/100, maximum/100]
 
 function applyPressureCurve(x) {
-  const { gain, softness, minimum, maximum } = params;
+  const { softness, minimum, maximum } = params;
 
   if (x <= 0) return minimum;
 
@@ -50,7 +49,7 @@ function applyPressureCurve(x) {
     ? (1 - softness)
     : (1 / (1 + softness));
 
-  const y = Math.pow(x * gain, exponent);
+  const y = Math.pow(x, exponent);
   return Math.min(Math.max(minimum, y), maximum);
 }
 
@@ -296,21 +295,18 @@ drawCanvas.addEventListener('pointerleave', () => {
 // ── Controls ──────────────────────────────────────────────────
 
 const sliders = {
-  gain:     document.getElementById('slider-gain'),
   softness: document.getElementById('slider-softness'),
   minimum:  document.getElementById('slider-minimum'),
   maximum:  document.getElementById('slider-maximum'),
 };
 
 const valueEls = {
-  gain:     document.getElementById('val-gain'),
   softness: document.getElementById('val-softness'),
   minimum:  document.getElementById('val-minimum'),
   maximum:  document.getElementById('val-maximum'),
 };
 
 function formatValue(key, val) {
-  if (key === 'gain')     return parseFloat(val).toFixed(1);
   if (key === 'softness') return parseFloat(val).toFixed(2);
   if (key === 'minimum')  return parseFloat(val).toFixed(2);
   if (key === 'maximum')  return parseFloat(val).toFixed(2);
@@ -338,7 +334,6 @@ Object.keys(sliders).forEach(key => {
 
 document.getElementById('btn-reset').addEventListener('click', () => {
   Object.assign(params, DEFAULT_PARAMS);
-  sliders.gain.value     = DEFAULT_PARAMS.gain;
   sliders.softness.value = DEFAULT_PARAMS.softness;
   sliders.minimum.value  = DEFAULT_PARAMS.minimum;
   sliders.maximum.value  = DEFAULT_PARAMS.maximum;
