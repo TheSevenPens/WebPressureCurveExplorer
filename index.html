@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pressure Curve Explorer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body oncontextmenu="return false;">
+
+<div id="app">
+
+  <!-- Left: Pressure curve editor -->
+  <div id="curve-panel">
+    <div class="panel-title">Pressure Curve</div>
+    <canvas id="curve-canvas"></canvas>
+
+    <div id="controls">
+
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">Gain</span>
+          <span class="param-value" id="val-gain">1.0</span>
+        </div>
+        <input type="range" id="slider-gain" min="1" max="5" step="0.1" value="1">
+      </div>
+
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">Softness</span>
+          <span class="param-value" id="val-softness">0.00</span>
+        </div>
+        <input type="range" id="slider-softness" min="-0.9" max="0.9" step="0.01" value="0">
+      </div>
+
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">Minimum</span>
+          <span class="param-value" id="val-minimum">0</span>
+        </div>
+        <input type="range" id="slider-minimum" min="0" max="100" step="1" value="0">
+      </div>
+
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">Maximum</span>
+          <span class="param-value" id="val-maximum">100</span>
+        </div>
+        <input type="range" id="slider-maximum" min="0" max="100" step="1" value="100">
+      </div>
+
+      <div class="param param-row">
+        <span class="param-name">Invert</span>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-invert">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <button id="btn-reset">Reset to Defaults</button>
+    </div>
+  </div>
+
+  <!-- Right: Drawing canvas -->
+  <div id="draw-panel">
+    <div id="toolbar">
+      <button id="btn-clear">Clear</button>
+      <span class="info-item">Type: <span class="val" id="val-type">---</span></span>
+      <span class="info-item">
+        Pressure: <span class="val" id="val-pressure-raw">---</span>
+        <span class="arrow">&#8594;</span>
+        <span class="val mapped" id="val-pressure-mapped">---</span>
+      </span>
+      <span class="info-item">Tilt X: <span class="val" id="val-tiltX">---</span></span>
+      <span class="info-item">Tilt Y: <span class="val" id="val-tiltY">---</span></span>
+      <span class="info-item">Azimuth: <span class="val" id="val-azimuth">---</span></span>
+      <span class="info-item">Altitude: <span class="val" id="val-altitude">---</span></span>
+    </div>
+    <canvas id="draw-canvas"></canvas>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
