@@ -104,7 +104,7 @@
 
     {#if flatActive}
       <NamedSlider
-        name="FlatLevel"
+        name="Height"
         value={params.flatLevel}
         min={0}
         max={1}
