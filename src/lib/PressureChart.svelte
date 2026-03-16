@@ -137,9 +137,9 @@
     if (showGrid) {
       curveCtx.strokeStyle = '#ebebf4';
       curveCtx.lineWidth = 1;
-      for (let i = 0; i <= 5; i += 1) {
-        const gx = PAD_LEFT + (i / 5) * plotW;
-        const gy = PAD_TOP + (i / 5) * plotH;
+      for (let i = 0; i <= 4; i += 1) {
+        const gx = PAD_LEFT + (i / 4) * plotW;
+        const gy = PAD_TOP + (i / 4) * plotH;
 
         curveCtx.beginPath();
         curveCtx.moveTo(gx, PAD_TOP);
