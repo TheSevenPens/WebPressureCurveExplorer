@@ -2,11 +2,11 @@
 // Pressure Curve Explorer
 //
 // Left panel: interactive pressure curve editor with parameters
-//   - Gain      (1–5):      amplify/shift the input range
-//   - Softness  (-0.9–0.9): shape of the curve (concave/convex)
-//   - Minimum   (0–100):    output floor as a percentage
-//   - Maximum   (0–100):    output ceiling as a percentage
-//   - Invert    (bool):     flip the curve
+//   - CurveAmount  (-0.9–0.9): shape of the curve (concave/convex)
+//   - InputMinimum (0–1):      input pressure threshold (Node A X)
+//   - InputMaximum (0–1):      input pressure ceiling  (Node B X)
+//   - OutputMinimum (0–1):     output floor             (Node A Y)
+//   - OutputMaximum (0–1):     output ceiling           (Node B Y)
 //
 // Right panel: drawing canvas using Pointer Events API.
 //   Raw stylus pressure is mapped through the curve before
@@ -31,16 +31,11 @@ const params = { ...DEFAULT_PARAMS };
 
 // ── Pressure Curve Math ──────────────────────────────────────
 //
-// For softness >= 0:  exponent = 1 - softness        (0.1 … 1.0, concave)
-// For softness <  0:  exponent = 1 / (1 + softness)  (1.0 … 10, convex)
-//
-// base = x * gain   (may exceed 1; gets clamped by min/max)
-//
-// y = sign * base^exponent + offset
-//   where sign = invert ? -1 : 1
-//         offset = invert ? 1 : 0
-//
-// then clamped to [minimum/100, maximum/100]
+// x is remapped from [inputMinimum, inputMaximum] → [0, 1],
+// then a power curve is applied:
+//   softness >= 0:  exponent = 1 - softness        (0.1 … 1.0, concave)
+//   softness <  0:  exponent = 1 / (1 + softness)  (1.0 … 10,  convex)
+// Result is mapped to [outputMinimum, outputMaximum].
 
 function applyPressureCurve(x) {
   const { softness, inputMinimum, inputMaximum, minimum, maximum } = params;
@@ -72,6 +67,8 @@ const PAD_BOTTOM = 32;   // room for X-axis labels
 const PAD_TOP    = 20;
 const PAD_RIGHT  = 20;
 
+const CURVE_COLOR = '#3366ee';   // curve color (all three segments)
+
 // Current raw input pressure for the live indicator dot (null = hidden)
 let livePressure = null;
 
@@ -81,14 +78,15 @@ let showGrid = true;
 // Whether axis tick labels are drawn
 let showLabels = true;
 
-// Resize the curve canvas to fill the panel width (keeping it square)
+// Resize the curve canvas to fill the panel width
 function resizeCurveCanvas() {
   const size = Math.max(160, curvePanel.clientWidth - 24); // 12px padding each side
   curveCanvas.style.width  = size + 'px';
   curveCanvas.style.height = size + 'px';
   curveCanvas.width        = Math.round(size * DPR);
   curveCanvas.height       = Math.round(size * DPR);
-  curveCtx.scale(DPR, DPR); // reset after canvas resize
+  curveCtx.resetTransform();   // clear any accumulated scale from previous resizes
+  curveCtx.scale(DPR, DPR);
   drawCurveCanvas();
 }
 
@@ -165,20 +163,44 @@ function drawCurveCanvas() {
     curveCtx.restore();
   }
 
-  // The pressure curve
-  curveCtx.strokeStyle = '#3366ee';
-  curveCtx.lineWidth   = 2;
-  curveCtx.lineJoin    = 'round';
+  // Pressure curve — three segments:
+  //   1. Left flat:    x=[0, inputMinimum]           y=outputMinimum
+  //   2. Active curve: x=[inputMinimum, inputMaximum]
+  //   3. Right flat:   x=[inputMaximum, 1]           y=outputMaximum
+  const inMin  = params.inputMinimum,  inMax  = params.inputMaximum;
+  const outMin = params.minimum,       outMax = params.maximum;
+
+  curveCtx.lineWidth = 2;
+  curveCtx.lineJoin  = 'round';
+
+  // Segment 1 — left flat
+  curveCtx.strokeStyle = CURVE_COLOR;
   curveCtx.beginPath();
-  let firstPoint = true;
-  for (let px = 0; px <= plotW; px++) {
+  curveCtx.moveTo(PAD_LEFT,                      PAD_TOP + plotH - outMin * plotH);
+  curveCtx.lineTo(PAD_LEFT + inMin * plotW,      PAD_TOP + plotH - outMin * plotH);
+  curveCtx.stroke();
+
+  // Segment 2 — active curve
+  curveCtx.strokeStyle = CURVE_COLOR;
+  curveCtx.beginPath();
+  const pxStart = Math.round(inMin * plotW);
+  const pxEnd   = Math.round(inMax * plotW);
+  let first = true;
+  for (let px = pxStart; px <= pxEnd; px++) {
     const x  = px / plotW;
     const y  = applyPressureCurve(x);
     const cx = PAD_LEFT + px;
     const cy = PAD_TOP  + plotH - y * plotH;
-    if (firstPoint) { curveCtx.moveTo(cx, cy); firstPoint = false; }
-    else              curveCtx.lineTo(cx, cy);
+    if (first) { curveCtx.moveTo(cx, cy); first = false; }
+    else          curveCtx.lineTo(cx, cy);
   }
+  curveCtx.stroke();
+
+  // Segment 3 — right flat
+  curveCtx.strokeStyle = CURVE_COLOR;
+  curveCtx.beginPath();
+  curveCtx.moveTo(PAD_LEFT + inMax * plotW,      PAD_TOP + plotH - outMax * plotH);
+  curveCtx.lineTo(PAD_LEFT + plotW,              PAD_TOP + plotH - outMax * plotH);
   curveCtx.stroke();
 
   // Combined nodes: A = (inputMinimum, outputMinimum), B = (inputMaximum, outputMaximum)
@@ -212,8 +234,8 @@ function drawCurveCanvas() {
   // Live pressure indicator dot + crosshair guide lines
   if (livePressure !== null) {
     const mapped = applyPressureCurve(livePressure);
-    const dotX   = PAD_LEFT + Math.min(livePressure, 1) * plotW;
-    const dotY   = PAD_TOP  + plotH - Math.min(mapped, 1) * plotH;
+    const dotX   = PAD_LEFT + livePressure * plotW;
+    const dotY   = PAD_TOP  + plotH - mapped * plotH;
 
     curveCtx.strokeStyle = 'rgba(200, 50, 80, 0.2)';
     curveCtx.lineWidth   = 1;
@@ -307,8 +329,8 @@ curveCanvas.addEventListener('pointermove', (e) => {
       params.minimum      = outVal;
       sliders.inputMinimum.value        = inVal;
       sliders.minimum.value             = outVal;
-      valueEls.inputMinimum.textContent = formatValue('inputMinimum', inVal);
-      valueEls.minimum.textContent      = formatValue('minimum', outVal);
+      valueEls.inputMinimum.textContent = formatValue(inVal);
+      valueEls.minimum.textContent      = formatValue(outVal);
     } else {
       // Node B: clamp so it doesn't cross Node A
       inVal  = Math.max(inVal,  params.inputMinimum + 0.01);
@@ -317,8 +339,8 @@ curveCanvas.addEventListener('pointermove', (e) => {
       params.maximum      = outVal;
       sliders.inputMaximum.value        = inVal;
       sliders.maximum.value             = outVal;
-      valueEls.inputMaximum.textContent = formatValue('inputMaximum', inVal);
-      valueEls.maximum.textContent      = formatValue('maximum', outVal);
+      valueEls.inputMaximum.textContent = formatValue(inVal);
+      valueEls.maximum.textContent      = formatValue(outVal);
     }
 
     drawCurveCanvas();
@@ -363,14 +385,12 @@ function clearDrawCanvas() {
 }
 
 function drawSegment(from, to, size) {
-  const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
   drawCtx.lineWidth   = size;
   drawCtx.strokeStyle = '#1a1a2e';
   drawCtx.lineCap     = 'round';
   drawCtx.lineJoin    = 'round';
   drawCtx.beginPath();
   drawCtx.moveTo(from.x, from.y);
-  drawCtx.quadraticCurveTo(from.x, from.y, mid.x, mid.y);
   drawCtx.lineTo(to.x, to.y);
   drawCtx.stroke();
 }
@@ -465,7 +485,7 @@ const valueEls = {
   maximum:      document.getElementById('val-maximum'),
 };
 
-function formatValue(key, val) {
+function formatValue(val) {
   return parseFloat(val).toFixed(2);
 }
 
@@ -489,28 +509,31 @@ Object.keys(sliders).forEach(key => {
     }
 
     params[key] = val;
-    valueEls[key].textContent = formatValue(key, val);
+    valueEls[key].textContent = formatValue(val);
     drawCurveCanvas();
   });
 });
 
 document.getElementById('btn-reset').addEventListener('click', () => {
   Object.assign(params, DEFAULT_PARAMS);
-  Object.keys(sliders).forEach(k => { sliders[k].value = DEFAULT_PARAMS[k]; });
-  Object.keys(valueEls).forEach(k => { valueEls[k].textContent = formatValue(k, DEFAULT_PARAMS[k]); });
+  Object.keys(sliders).forEach(k => {
+    sliders[k].value              = DEFAULT_PARAMS[k];
+    valueEls[k].textContent       = formatValue(DEFAULT_PARAMS[k]);
+  });
   drawCurveCanvas();
 });
 
 document.getElementById('btn-clear').addEventListener('click', clearDrawCanvas);
 
-document.getElementById('chk-grid').addEventListener('change', (e) => {
-  showGrid = e.target.checked;
-  drawCurveCanvas();
-});
-
-document.getElementById('chk-labels').addEventListener('change', (e) => {
-  showLabels = e.target.checked;
-  drawCurveCanvas();
+const checkboxActions = {
+  'chk-grid':   (v) => { showGrid   = v; },
+  'chk-labels': (v) => { showLabels = v; },
+};
+Object.entries(checkboxActions).forEach(([id, apply]) => {
+  document.getElementById(id).addEventListener('change', (e) => {
+    apply(e.target.checked);
+    drawCurveCanvas();
+  });
 });
 
 // ── Chart copy / save ─────────────────────────────────────────
@@ -543,12 +566,18 @@ function canvasToJpegCanvas(src) {
 }
 
 async function copyChart(region) {
-  const src = buildChartCanvas(region);
+  const src     = buildChartCanvas(region);
+  const copyBtn = document.getElementById('btn-copy');
   src.toBlob(async (blob) => {
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      const prev = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = prev; }, 1500);
     } catch (err) {
       console.error('Clipboard write failed:', err);
+      copyBtn.textContent = 'Failed';
+      setTimeout(() => { copyBtn.textContent = 'Copy ▾'; }, 1500);
     }
   }, 'image/png');
 }
