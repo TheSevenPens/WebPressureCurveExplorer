@@ -10,6 +10,8 @@
   <span class="info-item">
     Pressure: <span class="val">{info.pressureRaw}</span>
     <span class="arrow">→</span>
+    <span class="val">{info.pressureSmoothed}</span>
+    <span class="arrow">→</span>
     <span class="val mapped">{info.pressureMapped}</span>
   </span>
   <span class="info-item">Tilt X: <span class="val">{info.tiltX}</span></span>

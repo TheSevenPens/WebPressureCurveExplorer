@@ -4,6 +4,7 @@
   import DrawingCanvas from './lib/DrawingCanvas.svelte';
 
   const DEFAULT_PARAMS = {
+    emaSmoothing: 0,
     softness: 0.0,
     inputMinimum: 0,
     inputMaximum: 1,
