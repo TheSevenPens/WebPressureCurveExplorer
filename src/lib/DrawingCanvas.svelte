@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { applyPressureCurve } from './curveMath';
+  import DrawingCanvasHeader from './DrawingCanvasHeader.svelte';
 
   const MAX_BRUSH_SIZE = 40;
   const CANVAS_BG = '#f5f5f0';
@@ -176,19 +177,7 @@
 </script>
 
 <div id="draw-panel" bind:this={drawPanelEl}>
-  <div id="toolbar" bind:this={toolbarEl}>
-    <button id="btn-clear" on:click={clearDrawCanvas}>Clear</button>
-    <span class="info-item">Type: <span class="val">{info.type}</span></span>
-    <span class="info-item">
-      Pressure: <span class="val">{info.pressureRaw}</span>
-      <span class="arrow">→</span>
-      <span class="val mapped">{info.pressureMapped}</span>
-    </span>
-    <span class="info-item">Tilt X: <span class="val">{info.tiltX}</span></span>
-    <span class="info-item">Tilt Y: <span class="val">{info.tiltY}</span></span>
-    <span class="info-item">Azimuth: <span class="val">{info.azimuth}</span></span>
-    <span class="info-item">Altitude: <span class="val">{info.altitude}</span></span>
-  </div>
+  <DrawingCanvasHeader bind:el={toolbarEl} {info} onClear={clearDrawCanvas} />
 
   <canvas
     id="draw-canvas"

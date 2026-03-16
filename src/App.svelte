@@ -28,7 +28,7 @@
   });
 </script>
 
-<div id="app">
+<div id="layout">
   <PressureChart bind:params {livePressure} defaultParams={DEFAULT_PARAMS} />
   <DrawingCanvas bind:livePressure {params} />
 </div>
