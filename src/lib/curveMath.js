@@ -46,7 +46,7 @@ export function applyPressureCurve(x, params) {
     flatLevel,
   } = params;
 
-  if (curveType === 'null') return x;
+  if (curveType === 'null-effect') return x;
   if (curveType === 'flat') return flatLevel;
 
   const inputRange = inputMaximum - inputMinimum;

@@ -48,125 +48,134 @@
         <span class="param-name">CurveType</span>
       </div>
       <select value={params.curveType} on:change={handleCurveTypeChange}>
-        <option value="null">Null</option>
+        <option value="null-effect">Null-effect</option>
         <option value="flat">Flat</option>
         <option value="power">Power</option>
         <option value="sigmoid">Sigmoid</option>
       </select>
     </div>
 
-    <div class="param" class:disabled={!flatActive}>
-      <div class="param-header">
-        <span class="param-name">FlatLevel</span>
-        <span class="param-value">{formatValue(params.flatLevel)}</span>
+    {#if flatActive}
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">FlatLevel</span>
+          <span class="param-value">{formatValue(params.flatLevel)}</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={params.flatLevel}
+          on:input={(e) => handleSliderInput('flatLevel', e)}
+        >
       </div>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        value={params.flatLevel}
-        disabled={!flatActive}
-        on:input={(e) => handleSliderInput('flatLevel', e)}
-      >
-    </div>
+    {/if}
 
-    <div class="param" class:disabled={!curveActive}>
-      <div class="param-header">
-        <span class="param-name">CurveAmount</span>
-        <span class="param-value">{formatValue(params.softness)}</span>
+    {#if curveActive}
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">CurveAmount</span>
+          <span class="param-value">{formatValue(params.softness)}</span>
+        </div>
+        <input
+          type="range"
+          min="-0.9"
+          max="0.9"
+          step="0.01"
+          value={params.softness}
+          on:input={(e) => handleSliderInput('softness', e)}
+        >
       </div>
-      <input
-        type="range"
-        min="-0.9"
-        max="0.9"
-        step="0.01"
-        value={params.softness}
-        disabled={!curveActive}
-        on:input={(e) => handleSliderInput('softness', e)}
-      >
-    </div>
+    {/if}
 
-    <div class="param" style="display:none">
-      <div class="param-header">
-        <span class="param-name">Transition</span>
-        <span class="param-value">{formatValue(params.transitionWidth)}</span>
+    {#if false}
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">Transition</span>
+          <span class="param-value">{formatValue(params.transitionWidth)}</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="0.5"
+          step="0.01"
+          value={params.transitionWidth}
+          on:input={(e) => handleSliderInput('transitionWidth', e)}
+        >
       </div>
-      <input
-        type="range"
-        min="0"
-        max="0.5"
-        step="0.01"
-        value={params.transitionWidth}
-        disabled={!curveActive}
-        on:input={(e) => handleSliderInput('transitionWidth', e)}
-      >
-    </div>
+    {/if}
 
-    <div class="param" class:disabled={!curveActive}>
-      <div class="param-header">
-        <span class="param-name">InputMinimum</span>
-        <span class="param-value">{formatValue(params.inputMinimum)}</span>
+    {#if curveActive}
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">InputMinimum</span>
+          <span class="param-value">{formatValue(params.inputMinimum)}</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={params.inputMinimum}
+          on:input={(e) => handleSliderInput('inputMinimum', e)}
+        >
       </div>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        value={params.inputMinimum}
-        disabled={!curveActive}
-        on:input={(e) => handleSliderInput('inputMinimum', e)}
-      >
-    </div>
+    {/if}
 
-    <div class="param" class:disabled={!curveActive}>
-      <div class="param-header">
-        <span class="param-name">InputMaximum</span>
-        <span class="param-value">{formatValue(params.inputMaximum)}</span>
+    {#if curveActive}
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">InputMaximum</span>
+          <span class="param-value">{formatValue(params.inputMaximum)}</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={params.inputMaximum}
+          on:input={(e) => handleSliderInput('inputMaximum', e)}
+        >
       </div>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        value={params.inputMaximum}
-        disabled={!curveActive}
-        on:input={(e) => handleSliderInput('inputMaximum', e)}
-      >
-    </div>
+    {/if}
 
-    <div class="param" class:disabled={!curveActive}>
-      <div class="param-header">
-        <span class="param-name">OutputMinimum</span>
-        <span class="param-value">{formatValue(params.minimum)}</span>
+    {#if curveActive}
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">OutputMinimum</span>
+          <span class="param-value">{formatValue(params.minimum)}</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={params.minimum}
+          on:input={(e) => handleSliderInput('minimum', e)}
+        >
       </div>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        value={params.minimum}
-        disabled={!curveActive}
-        on:input={(e) => handleSliderInput('minimum', e)}
-      >
-    </div>
+    {/if}
 
-    <div class="param" class:disabled={!curveActive}>
-      <div class="param-header">
-        <span class="param-name">OutputMaximum</span>
-        <span class="param-value">{formatValue(params.maximum)}</span>
+    {#if curveActive}
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">OutputMaximum</span>
+          <span class="param-value">{formatValue(params.maximum)}</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={params.maximum}
+          on:input={(e) => handleSliderInput('maximum', e)}
+        >
       </div>
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        value={params.maximum}
-        disabled={!curveActive}
-        on:input={(e) => handleSliderInput('maximum', e)}
-      >
-    </div>
+    {/if}
 
-    <button id="btn-reset" on:click={resetToDefaults}>Reset to Defaults</button>
+    {#if params.curveType !== 'null-effect'}
+      <button id="btn-reset" on:click={resetToDefaults}>Reset curve</button>
+    {/if}
   </div>
 </div>

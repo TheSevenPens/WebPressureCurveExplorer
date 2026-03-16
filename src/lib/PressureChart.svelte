@@ -39,7 +39,7 @@
   let draggingNode = null;
   let isReady = false;
 
-  $: curveActive = params.curveType !== 'null' && params.curveType !== 'flat';
+  $: curveActive = params.curveType !== 'null-effect' && params.curveType !== 'flat';
   $: flatActive = params.curveType === 'flat';
 
   $: if (isReady) {
@@ -189,7 +189,7 @@
     curveCtx.lineWidth = 2;
     curveCtx.lineJoin = 'round';
 
-    if (params.curveType === 'null') {
+    if (params.curveType === 'null-effect') {
       curveCtx.strokeStyle = CURVE_COLOR;
       curveCtx.beginPath();
       curveCtx.moveTo(PAD_LEFT, PAD_TOP + plotH);
