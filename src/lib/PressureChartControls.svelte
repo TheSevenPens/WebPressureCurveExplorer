@@ -69,6 +69,24 @@
 
 <div id="panel-right">
   <div id="controls">
+    <div class="param-group">
+      <div class="param-group-title">Input Smoothing</div>
+      <div class="param">
+        <div class="param-header">
+          <span class="param-name">Pressure EMA</span>
+          <span class="param-value">{formatValue(params.emaSmoothing ?? 0)}</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="0.99"
+          step="0.01"
+          value={params.emaSmoothing ?? 0}
+          on:input={(e) => handleSliderInput('emaSmoothing', e)}
+        >
+      </div>
+    </div>
+
     <div class="param">
       <div class="param-header">
         <span class="param-name">CurveType</span>

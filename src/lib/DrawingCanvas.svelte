@@ -9,6 +9,7 @@
   const initialInfo = {
     type: '---',
     pressureRaw: '---',
+    pressureSmoothed: '---',
     pressureMapped: '---',
     tiltX: '---',
     tiltY: '---',
@@ -31,6 +32,25 @@
   let lastDeviceHeight = 0;
   let isDrawing = false;
   let lastPos = null;
+  let smoothedPressure = null;
+
+  function getSmoothedPressure(rawPressure) {
+    const smoothing = Math.min(0.99, Math.max(0, Number(params.emaSmoothing ?? 0)));
+
+    if (smoothing <= 0) {
+      smoothedPressure = rawPressure;
+      return rawPressure;
+    }
+
+    if (smoothedPressure === null) {
+      smoothedPressure = rawPressure;
+      return rawPressure;
+    }
+
+    const alpha = 1 - smoothing;
+    smoothedPressure = smoothedPressure + alpha * (rawPressure - smoothedPressure);
+    return smoothedPressure;
+  }
 
   function pointerToCanvasPos(pointerEvent) {
     const rect = drawCanvasEl.getBoundingClientRect();
@@ -97,14 +117,14 @@
     drawCtx.stroke();
   }
 
-  function updateInfo(pointerEvent) {
+  function updateInfo(pointerEvent, rawPressure, filteredPressure) {
     const toDegrees = (radians) => (radians * 180 / Math.PI).toFixed(1);
-    const pressure = Number(pointerEvent.pressure ?? 0);
-    const mapped = applyPressureCurve(pressure, params);
+    const mapped = applyPressureCurve(filteredPressure, params);
 
     info = {
       type: pointerEvent.pointerType || '---',
-      pressureRaw: pressure.toFixed(3),
+      pressureRaw: rawPressure.toFixed(3),
+      pressureSmoothed: filteredPressure.toFixed(3),
       pressureMapped: mapped.toFixed(3),
       tiltX: `${Number(pointerEvent.tiltX ?? 0).toFixed(1)}°`,
       tiltY: `${Number(pointerEvent.tiltY ?? 0).toFixed(1)}°`,
@@ -120,8 +140,10 @@
   function onDrawPointerDown(event) {
     isDrawing = true;
     lastPos = pointerToCanvasPos(event);
-    livePressure = Number(event.pressure ?? 0);
-    updateInfo(event);
+    const rawPressure = Number(event.pressure ?? 0);
+    const filteredPressure = getSmoothedPressure(rawPressure);
+    livePressure = filteredPressure;
+    updateInfo(event, rawPressure, filteredPressure);
 
     if (drawCanvasEl?.setPointerCapture) {
       drawCanvasEl.setPointerCapture(event.pointerId);
@@ -129,13 +151,15 @@
   }
 
   function onDrawPointerMove(event) {
-    livePressure = Number(event.pressure ?? 0);
-    updateInfo(event);
+    const rawPressure = Number(event.pressure ?? 0);
+    const filteredPressure = getSmoothedPressure(rawPressure);
+    livePressure = filteredPressure;
+    updateInfo(event, rawPressure, filteredPressure);
 
     if (!isDrawing) return;
 
     const currentPos = pointerToCanvasPos(event);
-    const mapped = applyPressureCurve(livePressure, params);
+    const mapped = applyPressureCurve(filteredPressure, params);
     const size = Math.max(1, mapped * MAX_BRUSH_SIZE);
     drawSegment(lastPos, currentPos, size);
     lastPos = currentPos;
@@ -144,6 +168,7 @@
   function stopDrawing() {
     isDrawing = false;
     lastPos = null;
+    smoothedPressure = null;
     livePressure = null;
     resetInfo();
   }
