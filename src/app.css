@@ -1,8 +1,8 @@
 :root {
-  --slider-accent:    #5e85a5;  /* thumb and filled track color */
-  --slider-track:     #c6c6c6;  /* unfilled track color         */
-  --checkbox-accent:  #5e85a5;  /* checkbox fill color          */
-  --param-value:      #464646;  /* numeric value display color  */
+  --slider-accent: #5e85a5;
+  --slider-track: #c6c6c6;
+  --checkbox-accent: #5e85a5;
+  --param-value: #464646;
 }
 
 * {
@@ -24,9 +24,6 @@ body {
   height: 100vh;
 }
 
-
-/* ── Curve Panel ─────────────────────────────────────────────── */
-
 #curve-panel {
   display: flex;
   flex-direction: row;
@@ -36,7 +33,6 @@ body {
   border-right: 1px solid #d0d0dc;
 }
 
-/* Column 1: graph + copy/save + checkboxes */
 #panel-left {
   display: flex;
   flex-direction: column;
@@ -46,7 +42,6 @@ body {
   min-width: 180px;
 }
 
-/* Column 2: curve type + sliders + reset */
 #panel-right {
   display: flex;
   flex-direction: column;
@@ -72,9 +67,6 @@ body {
   border: 1px solid #e0e0ea;
 }
 
-
-/* ── Controls ────────────────────────────────────────────────── */
-
 #controls {
   display: flex;
   flex-direction: column;
@@ -87,7 +79,6 @@ body {
   flex-direction: column;
   gap: 4px;
 }
-
 
 .param-header {
   display: flex;
@@ -136,7 +127,6 @@ input[type="checkbox"]:disabled {
   pointer-events: none;
 }
 
-
 #chart-actions {
   display: flex;
   gap: 6px;
@@ -174,7 +164,7 @@ input[type="checkbox"]:disabled {
   border: 1px solid #c8c8d8;
   border-radius: 4px;
   min-width: 148px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 .dropdown-menu.open {
@@ -230,9 +220,6 @@ input[type="checkbox"]:disabled {
   background: #e4e4f0;
   color: #1a1a2e;
 }
-
-
-/* ── Draw Panel ──────────────────────────────────────────────── */
 
 #draw-panel {
   flex: 1;
