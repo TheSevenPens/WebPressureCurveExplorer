@@ -162,54 +162,26 @@ function drawCurveCanvas() {
   }
   curveCtx.stroke();
 
-  // InputMinimum / InputMaximum draggable nodes on X-axis
-  const inputNodeYMap   = { inputMinimum: PAD_TOP + plotH, inputMaximum: PAD_TOP };
-  const inputNodeColors = { inputMinimum: '#e06060', inputMaximum: '#3377dd' };
-  for (const key of ['inputMinimum', 'inputMaximum']) {
-    const val  = params[key];
-    const nx   = PAD_LEFT + val * plotW;
-    const ny   = inputNodeYMap[key];
-
-    // Vertical dashed reference line across plot
-    curveCtx.strokeStyle = key === 'inputMinimum' ? 'rgba(220,80,80,0.25)' : 'rgba(50,100,220,0.25)';
+  // Combined nodes: A = (inputMinimum, outputMinimum), B = (inputMaximum, outputMaximum)
+  const nodes = [
+    { key: 'a', nx: PAD_LEFT + params.inputMinimum * plotW, ny: PAD_TOP + plotH - params.minimum * plotH,      color: '#e06060', guide: 'rgba(220,80,80,0.25)'    },
+    { key: 'b', nx: PAD_LEFT + params.inputMaximum * plotW, ny: PAD_TOP + plotH - params.maximum * plotH,      color: '#3377dd', guide: 'rgba(50,100,220,0.25)'    },
+  ];
+  for (const { nx, ny, color, guide } of nodes) {
+    // Guide lines: down to x-axis, left to y-axis
+    curveCtx.strokeStyle = guide;
     curveCtx.lineWidth   = 1;
     curveCtx.setLineDash([3, 4]);
     curveCtx.beginPath();
-    curveCtx.moveTo(nx, PAD_TOP);
-    curveCtx.lineTo(nx, PAD_TOP + plotH);
+    curveCtx.moveTo(nx, ny);
+    curveCtx.lineTo(nx, PAD_TOP + plotH); // vertical down
+    curveCtx.moveTo(nx, ny);
+    curveCtx.lineTo(PAD_LEFT, ny);        // horizontal left
     curveCtx.stroke();
     curveCtx.setLineDash([]);
 
     // Node circle
-    curveCtx.fillStyle = inputNodeColors[key];
-    curveCtx.beginPath();
-    curveCtx.arc(nx, ny, 6, 0, Math.PI * 2);
-    curveCtx.fill();
-    curveCtx.strokeStyle = '#ffffff';
-    curveCtx.lineWidth   = 1.5;
-    curveCtx.stroke();
-  }
-
-  // OutputMinimum / OutputMaximum draggable nodes on Y-axis
-  const nodeXMap   = { minimum: PAD_LEFT, maximum: PAD_LEFT + plotW };
-  const nodeColors = { minimum: '#e06060', maximum: '#3377dd' };
-  for (const key of ['minimum', 'maximum']) {
-    const val  = params[key];
-    const nx   = nodeXMap[key];
-    const ny   = PAD_TOP + plotH - val * plotH;
-
-    // Horizontal dashed reference line across plot
-    curveCtx.strokeStyle = key === 'minimum' ? 'rgba(220,80,80,0.25)' : 'rgba(50,100,220,0.25)';
-    curveCtx.lineWidth   = 1;
-    curveCtx.setLineDash([3, 4]);
-    curveCtx.beginPath();
-    curveCtx.moveTo(PAD_LEFT, ny);
-    curveCtx.lineTo(PAD_LEFT + plotW, ny);
-    curveCtx.stroke();
-    curveCtx.setLineDash([]);
-
-    // Node circle
-    curveCtx.fillStyle = nodeColors[key];
+    curveCtx.fillStyle = color;
     curveCtx.beginPath();
     curveCtx.arc(nx, ny, 6, 0, Math.PI * 2);
     curveCtx.fill();
@@ -246,7 +218,7 @@ function drawCurveCanvas() {
 // ── Curve-node drag interaction ───────────────────────────────
 
 const NODE_RADIUS = 8;   // hit-test radius in CSS px
-let draggingNode = null; // 'minimum' | 'maximum' | null
+let draggingNode = null; // 'a' | 'b' | null
 
 function curveLayout() {
   const W     = curveCanvas.width  / DPR;
@@ -258,20 +230,18 @@ function curveLayout() {
 
 function nodeCenter(key) {
   const { plotW, plotH } = curveLayout();
-  if (key === 'inputMinimum' || key === 'inputMaximum') {
-    return {
-      x: PAD_LEFT + params[key] * plotW,
-      y: key === 'inputMaximum' ? PAD_TOP : PAD_TOP + plotH,
-    };
-  }
+  if (key === 'a') return {
+    x: PAD_LEFT + params.inputMinimum * plotW,
+    y: PAD_TOP  + plotH - params.minimum * plotH,
+  };
   return {
-    x: key === 'maximum' ? PAD_LEFT + plotW : PAD_LEFT,
-    y: PAD_TOP + plotH - params[key] * plotH,
+    x: PAD_LEFT + params.inputMaximum * plotW,
+    y: PAD_TOP  + plotH - params.maximum * plotH,
   };
 }
 
 function hitTestCurveNode(cssX, cssY) {
-  for (const key of ['inputMinimum', 'inputMaximum', 'minimum', 'maximum']) {
+  for (const key of ['a', 'b']) {
     const c  = nodeCenter(key);
     const dx = cssX - c.x;
     const dy = cssY - c.y;
@@ -307,31 +277,36 @@ curveCanvas.addEventListener('pointermove', (e) => {
   const cssY = e.clientY - rect.top;
 
   if (draggingNode) {
-    const isInput = draggingNode === 'inputMinimum' || draggingNode === 'inputMaximum';
-    let val = isInput ? valueFromCurveX(cssX) : valueFromCurveY(cssY);
+    let inVal  = Math.round(valueFromCurveX(cssX) * 100) / 100;
+    let outVal = Math.round(valueFromCurveY(cssY) * 100) / 100;
 
-    // Enforce min <= max within each pair
-    if (draggingNode === 'inputMinimum') {
-      val = Math.min(val, params.inputMaximum);
-    } else if (draggingNode === 'inputMaximum') {
-      val = Math.max(val, params.inputMinimum);
-    } else if (draggingNode === 'minimum') {
-      val = Math.min(val, params.maximum);
+    if (draggingNode === 'a') {
+      // Node A: clamp so it doesn't cross Node B
+      inVal  = Math.min(inVal,  params.inputMaximum);
+      outVal = Math.min(outVal, params.maximum);
+      params.inputMinimum = inVal;
+      params.minimum      = outVal;
+      sliders.inputMinimum.value        = inVal;
+      sliders.minimum.value             = outVal;
+      valueEls.inputMinimum.textContent = formatValue('inputMinimum', inVal);
+      valueEls.minimum.textContent      = formatValue('minimum', outVal);
     } else {
-      val = Math.max(val, params.minimum);
+      // Node B: clamp so it doesn't cross Node A
+      inVal  = Math.max(inVal,  params.inputMinimum);
+      outVal = Math.max(outVal, params.minimum);
+      params.inputMaximum = inVal;
+      params.maximum      = outVal;
+      sliders.inputMaximum.value        = inVal;
+      sliders.maximum.value             = outVal;
+      valueEls.inputMaximum.textContent = formatValue('inputMaximum', inVal);
+      valueEls.maximum.textContent      = formatValue('maximum', outVal);
     }
 
-    val = Math.round(val * 100) / 100; // snap to slider step
-    params[draggingNode]               = val;
-    sliders[draggingNode].value        = val;
-    valueEls[draggingNode].textContent = formatValue(draggingNode, val);
     drawCurveCanvas();
     e.stopPropagation();
   } else {
     // Hover cursor
-    const hit     = hitTestCurveNode(cssX, cssY);
-    const isInput = hit === 'inputMinimum' || hit === 'inputMaximum';
-    curveCanvas.style.cursor = hit ? (isInput ? 'ew-resize' : 'ns-resize') : 'default';
+    curveCanvas.style.cursor = hitTestCurveNode(cssX, cssY) ? 'move' : 'default';
   }
 });
 
