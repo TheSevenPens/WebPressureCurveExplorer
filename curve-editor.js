@@ -31,6 +31,7 @@ let livePressure = null;
 
 let showGrid       = true;
 let showLabels     = true;
+let showNodes      = true;
 let showNodeGuides = true;
 
 let _lastCurveSize = 0;
@@ -181,6 +182,8 @@ function drawCurveCanvas() {
       { key: 'b', nx: PAD_LEFT + params.inputMaximum * plotW, ny: PAD_TOP + plotH - params.maximum * plotH, color: MAX_CONTROL_NODE_COLOR, guide: MAX_CONTROL_NODE_GUIDE },
     ];
     for (const { nx, ny, color, guide } of nodes) {
+      if (!showNodes) continue;
+
       // Guide lines: down to x-axis, left to y-axis
       if (showNodeGuides) {
         curveCtx.strokeStyle = guide;

@@ -39,7 +39,7 @@ Object.keys(sliders).forEach(key => {
 const CURVE_CONTROL_IDS = [
   'slider-softness', 'slider-transition-width',
   'slider-input-minimum', 'slider-input-maximum',
-  'slider-minimum', 'slider-maximum', 'chk-node-guides',
+  'slider-minimum', 'slider-maximum', 'chk-nodes', 'chk-node-guides',
 ];
 
 // Controls relevant only to the flat curve
@@ -91,6 +91,7 @@ document.getElementById('btn-clear').addEventListener('click', clearDrawCanvas);
 const checkboxActions = {
   'chk-grid':        (v) => { showGrid       = v; },
   'chk-labels':      (v) => { showLabels     = v; },
+  'chk-nodes':       (v) => { showNodes      = v; },
   'chk-node-guides': (v) => { showNodeGuides = v; },
 };
 Object.entries(checkboxActions).forEach(([id, apply]) => {
