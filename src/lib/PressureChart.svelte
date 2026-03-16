@@ -9,6 +9,7 @@
   const PAD_TOP = 20;
   const PAD_RIGHT = 20;
   const X_LABEL_SPACING = 8;
+  const Y_LABEL_SPACING = 8;
 
   const CURVE_COLOR = '#000000';
   const MIN_CONTROL_NODE_COLOR = 'rgb(255, 0, 136)';
@@ -169,7 +170,7 @@
       curveCtx.textBaseline = 'middle';
       for (let i = 0; i <= 4; i += 1) {
         const gy = PAD_TOP + plotH - (i / 4) * plotH;
-        curveCtx.fillText((i * 0.25).toFixed(2), PAD_LEFT - 4, gy);
+        curveCtx.fillText((i * 0.25).toFixed(2), PAD_LEFT - Y_LABEL_SPACING, gy);
       }
 
       curveCtx.fillStyle = '#000000';
