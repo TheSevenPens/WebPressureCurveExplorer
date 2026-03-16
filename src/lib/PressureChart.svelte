@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { applyPressureCurve } from './curveMath';
   import PressureChartFormat from './PressureChartFormat.svelte';
-  import PressureChartControls from './PressureChartControls.svelte';
+  import PressureCurveControls from './PressureCurveControls.svelte';
 
   const PAD_LEFT = 42;
   const PAD_BOTTOM = 32;
@@ -1129,7 +1129,7 @@
     />
   </div>
 
-  <PressureChartControls
+  <PressureCurveControls
     bind:params
     {defaultParams}
     {curveActive}
