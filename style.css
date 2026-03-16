@@ -107,6 +107,18 @@ input[type="range"] {
   cursor: pointer;
 }
 
+input[type="range"]:disabled,
+input[type="checkbox"]:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.param.disabled,
+.checkbox-row.disabled {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
 
 #chart-actions {
   display: flex;

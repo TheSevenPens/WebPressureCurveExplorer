@@ -45,6 +45,9 @@ function applyPressureCurve(x) {
   const inRange = inputMaximum - inputMinimum;
   const xNorm   = inRange > 0 ? Math.min(1, Math.max(0, (x - inputMinimum) / inRange)) : 0;
 
+  // Null curve: identity passthrough — output equals input with no remapping
+  if (curveType === 'null') return x;
+
   let curved;
   if (curveType === 'sigmoid') {
     // Logistic sigmoid normalized to pass through (0,0) and (1,1).
@@ -184,74 +187,83 @@ function drawCurveCanvas() {
     curveCtx.restore();
   }
 
-  // Pressure curve — three segments:
-  //   1. Inbound:  x=[0, inputMinimum]           y=outputMinimum  (flat)
-  //   2. Middle:   x=[inputMinimum, inputMaximum]                 (shaped by CurveAmount)
-  //   3. Outbound: x=[inputMaximum, 1]           y=outputMaximum  (flat)
-  const inMin  = params.inputMinimum,  inMax  = params.inputMaximum;
-  const outMin = params.minimum,       outMax = params.maximum;
-
   curveCtx.lineWidth = 2;
   curveCtx.lineJoin  = 'round';
 
-  // Inbound segment
-  curveCtx.strokeStyle = CURVE_COLOR;
-  curveCtx.beginPath();
-  curveCtx.moveTo(PAD_LEFT,                      PAD_TOP + plotH - outMin * plotH);
-  curveCtx.lineTo(PAD_LEFT + inMin * plotW,      PAD_TOP + plotH - outMin * plotH);
-  curveCtx.stroke();
-
-  // Middle segment
-  curveCtx.strokeStyle = CURVE_COLOR;
-  curveCtx.beginPath();
-  const pxStart = Math.round(inMin * plotW);
-  const pxEnd   = Math.round(inMax * plotW);
-  let first = true;
-  for (let px = pxStart; px <= pxEnd; px++) {
-    const x  = px / plotW;
-    const y  = applyPressureCurve(x);
-    const cx = PAD_LEFT + px;
-    const cy = PAD_TOP  + plotH - y * plotH;
-    if (first) { curveCtx.moveTo(cx, cy); first = false; }
-    else          curveCtx.lineTo(cx, cy);
-  }
-  curveCtx.stroke();
-
-  // Outbound segment
-  curveCtx.strokeStyle = CURVE_COLOR;
-  curveCtx.beginPath();
-  curveCtx.moveTo(PAD_LEFT + inMax * plotW,      PAD_TOP + plotH - outMax * plotH);
-  curveCtx.lineTo(PAD_LEFT + plotW,              PAD_TOP + plotH - outMax * plotH);
-  curveCtx.stroke();
-
-  // Control nodes
-  const nodes = [
-    { key: 'a', nx: PAD_LEFT + params.inputMinimum * plotW, ny: PAD_TOP + plotH - params.minimum * plotH, color: MIN_CONTROL_NODE_COLOR, guide: MIN_CONTROL_NODE_GUIDE },  // minimum control node
-    { key: 'b', nx: PAD_LEFT + params.inputMaximum * plotW, ny: PAD_TOP + plotH - params.maximum * plotH, color: MAX_CONTROL_NODE_COLOR, guide: MAX_CONTROL_NODE_GUIDE },  // maximum control node
-  ];
-  for (const { nx, ny, color, guide } of nodes) {
-    // Guide lines: down to x-axis, left to y-axis
-    if (showNodeGuides) {
-      curveCtx.strokeStyle = guide;
-      curveCtx.lineWidth   = 1;
-      curveCtx.setLineDash([3, 4]);
-      curveCtx.beginPath();
-      curveCtx.moveTo(nx, ny);
-      curveCtx.lineTo(nx, PAD_TOP + plotH); // vertical down
-      curveCtx.moveTo(nx, ny);
-      curveCtx.lineTo(PAD_LEFT, ny);        // horizontal left
-      curveCtx.stroke();
-      curveCtx.setLineDash([]);
-    }
-
-    // Node circle
-    curveCtx.fillStyle = color;
+  if (params.curveType === 'null') {
+    // Null curve: single straight diagonal from (0,0) to (1,1) — no control nodes
+    curveCtx.strokeStyle = CURVE_COLOR;
     curveCtx.beginPath();
-    curveCtx.arc(nx, ny, 6, 0, Math.PI * 2);
-    curveCtx.fill();
-    curveCtx.strokeStyle = '#ffffff';
-    curveCtx.lineWidth   = 1.5;
+    curveCtx.moveTo(PAD_LEFT,         PAD_TOP + plotH);
+    curveCtx.lineTo(PAD_LEFT + plotW, PAD_TOP);
     curveCtx.stroke();
+  } else {
+    // Pressure curve — three segments:
+    //   1. Inbound:  x=[0, inputMinimum]           y=outputMinimum  (flat)
+    //   2. Middle:   x=[inputMinimum, inputMaximum]                 (shaped by CurveAmount)
+    //   3. Outbound: x=[inputMaximum, 1]           y=outputMaximum  (flat)
+    const inMin  = params.inputMinimum,  inMax  = params.inputMaximum;
+    const outMin = params.minimum,       outMax = params.maximum;
+
+    // Inbound segment
+    curveCtx.strokeStyle = CURVE_COLOR;
+    curveCtx.beginPath();
+    curveCtx.moveTo(PAD_LEFT,                 PAD_TOP + plotH - outMin * plotH);
+    curveCtx.lineTo(PAD_LEFT + inMin * plotW, PAD_TOP + plotH - outMin * plotH);
+    curveCtx.stroke();
+
+    // Middle segment
+    curveCtx.strokeStyle = CURVE_COLOR;
+    curveCtx.beginPath();
+    const pxStart = Math.round(inMin * plotW);
+    const pxEnd   = Math.round(inMax * plotW);
+    let first = true;
+    for (let px = pxStart; px <= pxEnd; px++) {
+      const x  = px / plotW;
+      const y  = applyPressureCurve(x);
+      const cx = PAD_LEFT + px;
+      const cy = PAD_TOP  + plotH - y * plotH;
+      if (first) { curveCtx.moveTo(cx, cy); first = false; }
+      else          curveCtx.lineTo(cx, cy);
+    }
+    curveCtx.stroke();
+
+    // Outbound segment
+    curveCtx.strokeStyle = CURVE_COLOR;
+    curveCtx.beginPath();
+    curveCtx.moveTo(PAD_LEFT + inMax * plotW, PAD_TOP + plotH - outMax * plotH);
+    curveCtx.lineTo(PAD_LEFT + plotW,         PAD_TOP + plotH - outMax * plotH);
+    curveCtx.stroke();
+
+    // Control nodes (minimum and maximum)
+    const nodes = [
+      { key: 'a', nx: PAD_LEFT + params.inputMinimum * plotW, ny: PAD_TOP + plotH - params.minimum * plotH, color: MIN_CONTROL_NODE_COLOR, guide: MIN_CONTROL_NODE_GUIDE },  // minimum control node
+      { key: 'b', nx: PAD_LEFT + params.inputMaximum * plotW, ny: PAD_TOP + plotH - params.maximum * plotH, color: MAX_CONTROL_NODE_COLOR, guide: MAX_CONTROL_NODE_GUIDE },  // maximum control node
+    ];
+    for (const { nx, ny, color, guide } of nodes) {
+      // Guide lines: down to x-axis, left to y-axis
+      if (showNodeGuides) {
+        curveCtx.strokeStyle = guide;
+        curveCtx.lineWidth   = 1;
+        curveCtx.setLineDash([3, 4]);
+        curveCtx.beginPath();
+        curveCtx.moveTo(nx, ny);
+        curveCtx.lineTo(nx, PAD_TOP + plotH); // vertical down
+        curveCtx.moveTo(nx, ny);
+        curveCtx.lineTo(PAD_LEFT, ny);        // horizontal left
+        curveCtx.stroke();
+        curveCtx.setLineDash([]);
+      }
+
+      // Node circle
+      curveCtx.fillStyle = color;
+      curveCtx.beginPath();
+      curveCtx.arc(nx, ny, 6, 0, Math.PI * 2);
+      curveCtx.fill();
+      curveCtx.strokeStyle = '#ffffff';
+      curveCtx.lineWidth   = 1.5;
+      curveCtx.stroke();
+    }
   }
 
   // Live pressure indicator dot + crosshair guide lines
@@ -325,6 +337,7 @@ function valueFromCurveX(cssX) {
 }
 
 curveCanvas.addEventListener('pointerdown', (e) => {
+  if (params.curveType === 'null') return;  // no nodes to drag in null mode
   const rect = curveCanvas.getBoundingClientRect();
   const cssX = e.clientX - rect.left;
   const cssY = e.clientY - rect.top;
@@ -537,6 +550,23 @@ Object.keys(sliders).forEach(key => {
   });
 });
 
+// Disable controls that have no effect in null mode
+const NULL_DISABLED_IDS = [
+  'slider-softness', 'slider-input-minimum', 'slider-input-maximum',
+  'slider-minimum',  'slider-maximum',        'chk-node-guides',
+];
+
+function syncNullMode() {
+  const isNull = params.curveType === 'null';
+  NULL_DISABLED_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = isNull;
+    // Dim the closest .param or .checkbox-row ancestor so labels grey out too
+    const row = el.closest('.param, .checkbox-row');
+    if (row) row.classList.toggle('disabled', isNull);
+  });
+}
+
 document.getElementById('btn-reset').addEventListener('click', () => {
   Object.assign(params, DEFAULT_PARAMS);
   Object.keys(sliders).forEach(k => {
@@ -544,11 +574,13 @@ document.getElementById('btn-reset').addEventListener('click', () => {
     valueEls[k].textContent       = formatValue(DEFAULT_PARAMS[k]);
   });
   document.getElementById('select-curve-type').value = DEFAULT_PARAMS.curveType;
+  syncNullMode();
   drawCurveCanvas();
 });
 
 document.getElementById('select-curve-type').addEventListener('change', (e) => {
   params.curveType = e.target.value;
+  syncNullMode();
   drawCurveCanvas();
 });
 
@@ -661,3 +693,4 @@ document.addEventListener('keydown', (e) => {
 window.addEventListener('resize', resizeDrawCanvas);
 resizeDrawCanvas();
 // Note: curve canvas is initialised by its ResizeObserver on first layout
+syncNullMode(); // apply disabled state for initial curveType
