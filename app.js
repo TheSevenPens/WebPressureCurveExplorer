@@ -22,7 +22,7 @@ const DEFAULT_PARAMS = {
   gain:     1.0,
   softness: 0.0,
   minimum:  0,
-  maximum:  100,
+  maximum:  1,
 };
 
 const params = { ...DEFAULT_PARAMS };
@@ -43,17 +43,15 @@ const params = { ...DEFAULT_PARAMS };
 
 function applyPressureCurve(x) {
   const { gain, softness, minimum, maximum } = params;
-  const minOut = minimum / 100;
-  const maxOut = maximum / 100;
 
-  if (x <= 0) return minOut;
+  if (x <= 0) return minimum;
 
   const exponent = softness >= 0
     ? (1 - softness)
     : (1 / (1 + softness));
 
   const y = Math.pow(x * gain, exponent);
-  return Math.min(Math.max(minOut, y), maxOut);
+  return Math.min(Math.max(minimum, y), maximum);
 }
 
 
@@ -312,9 +310,11 @@ const valueEls = {
 };
 
 function formatValue(key, val) {
-  if (key === 'gain')     return val.toFixed(1);
+  if (key === 'gain')     return parseFloat(val).toFixed(1);
   if (key === 'softness') return parseFloat(val).toFixed(2);
-  return Math.round(val).toString();
+  if (key === 'minimum')  return parseFloat(val).toFixed(2);
+  if (key === 'maximum')  return parseFloat(val).toFixed(2);
+  return String(val);
 }
 
 Object.keys(sliders).forEach(key => {
