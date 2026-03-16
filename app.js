@@ -43,14 +43,20 @@ const params = { ...DEFAULT_PARAMS };
 // then clamped to [minimum/100, maximum/100]
 
 function applyPressureCurve(x) {
-  const { inputMinimum, inputMaximum, minimum, maximum } = params;
+  const { softness, inputMinimum, inputMaximum, minimum, maximum } = params;
 
   // Remap x from [inputMinimum, inputMaximum] to [0, 1]
   const inRange = inputMaximum - inputMinimum;
   const xNorm   = inRange > 0 ? Math.min(1, Math.max(0, (x - inputMinimum) / inRange)) : 0;
 
-  // Map normalised input to output range (linear curve for now)
-  return minimum + xNorm * (maximum - minimum);
+  // Apply softness curve between the two nodes
+  // softness >= 0: exponent = 1 - softness  (concave, 1.0 → 0.1)
+  // softness <  0: exponent = 1/(1+softness) (convex,  1.0 → 10)
+  const exp    = softness >= 0 ? 1 - softness : 1 / (1 + softness);
+  const curved = Math.pow(xNorm, exp);
+
+  // Map to output range
+  return minimum + curved * (maximum - minimum);
 }
 
 
