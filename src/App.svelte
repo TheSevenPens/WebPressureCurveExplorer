@@ -5,6 +5,8 @@
 
   const DEFAULT_PARAMS = {
     emaSmoothing: 0,
+    positionEmaSmoothing: 0,
+    smoothingOrder: 'smooth-then-curve',
     softness: 0.0,
     inputMinimum: 0,
     inputMaximum: 1,

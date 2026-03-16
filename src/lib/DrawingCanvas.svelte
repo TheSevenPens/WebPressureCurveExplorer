@@ -9,8 +9,10 @@
   const initialInfo = {
     type: '---',
     pressureRaw: '---',
+    pressureCurved: '---',
     pressureSmoothed: '---',
-    pressureMapped: '---',
+    pressureOutput: '---',
+    smoothingOrder: 'smooth-then-curve',
     tiltX: '---',
     tiltY: '---',
     azimuth: '---',
@@ -33,6 +35,7 @@
   let isDrawing = false;
   let lastPos = null;
   let smoothedPressure = null;
+  let smoothedPos = null;
 
   function getSmoothedPressure(rawPressure) {
     const smoothing = Math.min(0.99, Math.max(0, Number(params.emaSmoothing ?? 0)));
@@ -52,6 +55,32 @@
     return smoothedPressure;
   }
 
+  function processPressure(rawPressure) {
+    const order = params.smoothingOrder ?? 'smooth-then-curve';
+
+    if (order === 'curve-then-smooth') {
+      const curved = applyPressureCurve(rawPressure, params);
+      const smoothed = getSmoothedPressure(curved);
+      return {
+        order,
+        preCurvePressure: rawPressure,
+        curvedPressure: curved,
+        smoothedPressure: smoothed,
+        outputPressure: smoothed,
+      };
+    }
+
+    const smoothed = getSmoothedPressure(rawPressure);
+    const curved = applyPressureCurve(smoothed, params);
+    return {
+      order: 'smooth-then-curve',
+      preCurvePressure: smoothed,
+      curvedPressure: curved,
+      smoothedPressure: smoothed,
+      outputPressure: curved,
+    };
+  }
+
   function pointerToCanvasPos(pointerEvent) {
     const rect = drawCanvasEl.getBoundingClientRect();
     const scaleX = rect.width > 0 ? drawCanvasEl.width / rect.width : 1;
@@ -60,6 +89,27 @@
       x: (pointerEvent.clientX - rect.left) * scaleX,
       y: (pointerEvent.clientY - rect.top) * scaleY,
     };
+  }
+
+  function getSmoothedPos(rawPos) {
+    const smoothing = Math.min(0.99, Math.max(0, Number(params.positionEmaSmoothing ?? 0)));
+
+    if (smoothing <= 0) {
+      smoothedPos = rawPos;
+      return rawPos;
+    }
+
+    if (smoothedPos === null) {
+      smoothedPos = rawPos;
+      return rawPos;
+    }
+
+    const alpha = 1 - smoothing;
+    smoothedPos = {
+      x: smoothedPos.x + alpha * (rawPos.x - smoothedPos.x),
+      y: smoothedPos.y + alpha * (rawPos.y - smoothedPos.y),
+    };
+    return smoothedPos;
   }
 
   function scheduleResize() {
@@ -117,15 +167,16 @@
     drawCtx.stroke();
   }
 
-  function updateInfo(pointerEvent, rawPressure, filteredPressure) {
+  function updateInfo(pointerEvent, rawPressure, processedPressure) {
     const toDegrees = (radians) => (radians * 180 / Math.PI).toFixed(1);
-    const mapped = applyPressureCurve(filteredPressure, params);
 
     info = {
       type: pointerEvent.pointerType || '---',
       pressureRaw: rawPressure.toFixed(3),
-      pressureSmoothed: filteredPressure.toFixed(3),
-      pressureMapped: mapped.toFixed(3),
+      pressureCurved: processedPressure.curvedPressure.toFixed(3),
+      pressureSmoothed: processedPressure.smoothedPressure.toFixed(3),
+      pressureOutput: processedPressure.outputPressure.toFixed(3),
+      smoothingOrder: processedPressure.order,
       tiltX: `${Number(pointerEvent.tiltX ?? 0).toFixed(1)}°`,
       tiltY: `${Number(pointerEvent.tiltY ?? 0).toFixed(1)}°`,
       azimuth: `${toDegrees(Number(pointerEvent.azimuthAngle ?? 0))}°`,
@@ -139,11 +190,11 @@
 
   function onDrawPointerDown(event) {
     isDrawing = true;
-    lastPos = pointerToCanvasPos(event);
+    lastPos = getSmoothedPos(pointerToCanvasPos(event));
     const rawPressure = Number(event.pressure ?? 0);
-    const filteredPressure = getSmoothedPressure(rawPressure);
-    livePressure = filteredPressure;
-    updateInfo(event, rawPressure, filteredPressure);
+    const processedPressure = processPressure(rawPressure);
+    livePressure = processedPressure.preCurvePressure;
+    updateInfo(event, rawPressure, processedPressure);
 
     if (drawCanvasEl?.setPointerCapture) {
       drawCanvasEl.setPointerCapture(event.pointerId);
@@ -152,15 +203,14 @@
 
   function onDrawPointerMove(event) {
     const rawPressure = Number(event.pressure ?? 0);
-    const filteredPressure = getSmoothedPressure(rawPressure);
-    livePressure = filteredPressure;
-    updateInfo(event, rawPressure, filteredPressure);
+    const processedPressure = processPressure(rawPressure);
+    livePressure = processedPressure.preCurvePressure;
+    updateInfo(event, rawPressure, processedPressure);
 
     if (!isDrawing) return;
 
-    const currentPos = pointerToCanvasPos(event);
-    const mapped = applyPressureCurve(filteredPressure, params);
-    const size = Math.max(1, mapped * MAX_BRUSH_SIZE);
+    const currentPos = getSmoothedPos(pointerToCanvasPos(event));
+    const size = Math.max(1, processedPressure.outputPressure * MAX_BRUSH_SIZE);
     drawSegment(lastPos, currentPos, size);
     lastPos = currentPos;
   }
@@ -169,6 +219,7 @@
     isDrawing = false;
     lastPos = null;
     smoothedPressure = null;
+    smoothedPos = null;
     livePressure = null;
     resetInfo();
   }
