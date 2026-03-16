@@ -159,16 +159,16 @@
 
       curveCtx.textAlign = 'center';
       curveCtx.textBaseline = 'top';
-      for (let i = 0; i <= 5; i += 1) {
-        const gx = PAD_LEFT + (i / 5) * plotW;
-        curveCtx.fillText((i * 0.2).toFixed(1), gx, PAD_TOP + plotH + 4);
+      for (let i = 0; i <= 4; i += 1) {
+        const gx = PAD_LEFT + (i / 4) * plotW;
+        curveCtx.fillText((i * 0.25).toFixed(2), gx, PAD_TOP + plotH + 4);
       }
 
       curveCtx.textAlign = 'right';
       curveCtx.textBaseline = 'middle';
-      for (let i = 0; i <= 5; i += 1) {
-        const gy = PAD_TOP + plotH - (i / 5) * plotH;
-        curveCtx.fillText((i * 0.2).toFixed(1), PAD_LEFT - 4, gy);
+      for (let i = 0; i <= 4; i += 1) {
+        const gy = PAD_TOP + plotH - (i / 4) * plotH;
+        curveCtx.fillText((i * 0.25).toFixed(2), PAD_LEFT - 4, gy);
       }
 
       curveCtx.fillStyle = '#000000';
