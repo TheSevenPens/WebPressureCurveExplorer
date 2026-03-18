@@ -12,10 +12,10 @@
     inputMaximum: 1,
     minimum: 0,
     maximum: 1,
-    curveType: 'power',
+    curveType: 'basic',
     transitionWidth: 0,
     flatLevel: 0.5,
-    customPoints: [
+    bezierPoints: [
       {
         x: 0,
         y: 0,

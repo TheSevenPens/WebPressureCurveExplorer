@@ -195,14 +195,14 @@ export function applyPressureCurve(x, params) {
     curveType,
     transitionWidth,
     flatLevel,
-    customPoints,
+    bezierPoints,
   } = params;
 
   if (curveType === 'null-effect') return x;
   if (curveType === 'flat') return flatLevel;
-  if (curveType === 'custom') {
+  if (curveType === 'bezier') {
     const clampedX = Math.min(1, Math.max(0, x));
-    return evaluateCustomCurve(clampedX, customPoints);
+    return evaluateCustomCurve(clampedX, bezierPoints);
   }
 
   const inputRange = inputMaximum - inputMinimum;
