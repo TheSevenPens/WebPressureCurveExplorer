@@ -11,7 +11,7 @@
   const X_AXIS_LABEL_SPACING = 2;
   const Y_AXIS_LABEL_SPACING = 7;
 
-  const RESPONSE_COLOR = '#cc6600';
+  const RESPONSE_COLOR = '#000000';
 
   export let data = null;
   export let params = null;
@@ -138,7 +138,7 @@
       const cx = PAD_LEFT + (gf / maxGf) * plotW;
       const cy = PAD_TOP + plotH - getY(logPct) * plotH;
       ctx.beginPath();
-      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
