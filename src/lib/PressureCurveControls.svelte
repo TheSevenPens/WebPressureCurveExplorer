@@ -8,11 +8,11 @@
   export let defaultParams;
   export let curveActive = true;
   export let flatActive = false;
-  export let customActive = false;
-  export let canAddCustomPoint = false;
-  export let canRemoveCustomPoint = false;
-  export let onAddCustomPoint = () => {};
-  export let onRemoveCustomPoint = () => {};
+  export let bezierActive = false;
+  export let canAddBezierPoint = false;
+  export let canRemoveBezierPoint = false;
+  export let onAddBezierPoint = () => {};
+  export let onRemoveBezierPoint = () => {};
   export let onResponseDataChange = () => {};
   export let onResponseShowCurveEffectChange = () => {};
 
@@ -46,12 +46,12 @@
       return;
     }
 
-    if (params.curveType === 'custom') {
-      const defaultCustomPoints = Array.isArray(defaultParams.customPoints)
-        ? defaultParams.customPoints.map((point) => ({ ...point }))
+    if (params.curveType === 'bezier') {
+      const defaultBezierPoints = Array.isArray(defaultParams.bezierPoints)
+        ? defaultParams.bezierPoints.map((point) => ({ ...point }))
         : [{ x: 0, y: 0 }, { x: 1, y: 1 }];
 
-      patchParams({ customPoints: defaultCustomPoints });
+      patchParams({ bezierPoints: defaultBezierPoints });
       return;
     }
 
@@ -78,27 +78,27 @@
       <select value={params.curveType} on:change={handleCurveTypeChange}>
         <option value="null-effect">Null-effect</option>
         <option value="flat">Flat</option>
-        <option value="power">Power</option>
+        <option value="basic">Basic</option>
         <option value="sigmoid">Sigmoid</option>
-        <option value="custom">Custom</option>
+        <option value="bezier">Bezier</option>
       </select>
     </div>
 
-    {#if customActive}
-      <div class="custom-points-actions">
+    {#if bezierActive}
+      <div class="bezier-points-actions">
         <button
           type="button"
           class="small-action-btn"
-          on:click={onAddCustomPoint}
-          disabled={!canAddCustomPoint}
+          on:click={onAddBezierPoint}
+          disabled={!canAddBezierPoint}
         >
           Add point
         </button>
         <button
           type="button"
           class="small-action-btn"
-          on:click={onRemoveCustomPoint}
-          disabled={!canRemoveCustomPoint}
+          on:click={onRemoveBezierPoint}
+          disabled={!canRemoveBezierPoint}
         >
           Remove point
         </button>

@@ -48,12 +48,12 @@
 
   let menuCopyOpen = false;
   let menuSaveOpen = false;
-  let customContextMenuOpen = false;
-  let customContextMenuX = 0;
-  let customContextMenuY = 0;
-  let customContextValueX = null;
-  let customContextValueY = null;
-  let customContextPointIndex = null;
+  let bezierContextMenuOpen = false;
+  let bezierContextMenuX = 0;
+  let bezierContextMenuY = 0;
+  let bezierContextValueX = null;
+  let bezierContextValueY = null;
+  let bezierContextPointIndex = null;
   let copyButtonLabel = 'Copy ▾';
 
   let curvePanelEl;
@@ -63,16 +63,16 @@
   let curveDpr = 1;
   let lastCurveSize = 0;
   let draggingNode = null;
-  let selectedCustomPoint = null;
-  let selectedCustomHandle = null;
+  let selectedBezierPoint = null;
+  let selectedBezierHandle = null;
   let isReady = false;
 
-  $: curveActive = params.curveType === 'power' || params.curveType === 'sigmoid';
+  $: curveActive = params.curveType === 'basic' || params.curveType === 'sigmoid';
   $: flatActive = params.curveType === 'flat';
-  $: customActive = params.curveType === 'custom';
-  $: customPoints = sanitizeCustomPoints(params.customPoints);
-  $: canAddCustomPoint = customActive && customPoints.length < 16;
-  $: canRemoveCustomPoint = customActive && customPoints.length > 2;
+  $: bezierActive = params.curveType === 'bezier';
+  $: bezierPoints = sanitizeBezierPoints(params.bezierPoints);
+  $: canAddBezierPoint = bezierActive && bezierPoints.length < 16;
+  $: canRemoveBezierPoint = bezierActive && bezierPoints.length > 2;
 
   $: if (isReady) {
     params;
@@ -91,7 +91,7 @@
     params = { ...params, ...nextValues };
   }
 
-  function sanitizeCustomPoints(points) {
+  function sanitizeBezierPoints(points) {
     const source = Array.isArray(points) && points.length > 0
       ? points
       : [{ x: 0, y: 0 }, { x: 1, y: 1 }];
@@ -175,17 +175,17 @@
     return normalized;
   }
 
-  function isRemovableCustomPoint(index) {
-    return index !== null && index > 0 && index < customPoints.length - 1;
+  function isRemovableBezierPoint(index) {
+    return index !== null && index > 0 && index < bezierPoints.length - 1;
   }
 
-  function updateCustomPoints(nextPoints) {
-    patchParams({ customPoints: sanitizeCustomPoints(nextPoints) });
+  function updateBezierPoints(nextPoints) {
+    patchParams({ bezierPoints: sanitizeBezierPoints(nextPoints) });
   }
 
-  function customPointCenter(index) {
+  function bezierPointCenter(index) {
     const { plotW, plotH } = curveLayout();
-    const point = customPoints[index];
+    const point = bezierPoints[index];
     if (!point) return null;
     return {
       x: PAD_LEFT + point.x * plotW,
@@ -193,9 +193,9 @@
     };
   }
 
-  function hitTestCustomPoint(cssX, cssY) {
-    for (let i = customPoints.length - 1; i >= 0; i -= 1) {
-      const center = customPointCenter(i);
+  function hitTestBezierPoint(cssX, cssY) {
+    for (let i = bezierPoints.length - 1; i >= 0; i -= 1) {
+      const center = bezierPointCenter(i);
       if (!center) continue;
       const dx = cssX - center.x;
       const dy = cssY - center.y;
@@ -204,9 +204,9 @@
     return null;
   }
 
-  function customHandleCenter(index, handle) {
+  function bezierHandleCenter(index, handle) {
     const { plotW, plotH } = curveLayout();
-    const point = customPoints[index];
+    const point = bezierPoints[index];
     if (!point) return null;
 
     const xValue = handle === 'in' ? point.inX : point.outX;
@@ -217,19 +217,19 @@
     };
   }
 
-  function hitTestCustomHandle(cssX, cssY) {
-    for (let i = customPoints.length - 1; i >= 0; i -= 1) {
-      const point = customPoints[i];
+  function hitTestBezierHandle(cssX, cssY) {
+    for (let i = bezierPoints.length - 1; i >= 0; i -= 1) {
+      const point = bezierPoints[i];
       const handles = [];
       if (i > 0 && (point.inX !== point.x || point.inY !== point.y)) {
         handles.push('in');
       }
-      if (i < customPoints.length - 1 && (point.outX !== point.x || point.outY !== point.y)) {
+      if (i < bezierPoints.length - 1 && (point.outX !== point.x || point.outY !== point.y)) {
         handles.push('out');
       }
 
       for (const handle of handles) {
-        const center = customHandleCenter(i, handle);
+        const center = bezierHandleCenter(i, handle);
         if (!center) continue;
         const dx = cssX - center.x;
         const dy = cssY - center.y;
@@ -242,21 +242,21 @@
     return null;
   }
 
-  function addCustomPoint() {
-    if (!canAddCustomPoint) return;
+  function addBezierPoint() {
+    if (!canAddBezierPoint) return;
 
     let targetIndex = 0;
     let maxGap = -1;
-    for (let i = 0; i < customPoints.length - 1; i += 1) {
-      const gap = customPoints[i + 1].x - customPoints[i].x;
+    for (let i = 0; i < bezierPoints.length - 1; i += 1) {
+      const gap = bezierPoints[i + 1].x - bezierPoints[i].x;
       if (gap > maxGap) {
         maxGap = gap;
         targetIndex = i;
       }
     }
 
-    const left = customPoints[targetIndex];
-    const right = customPoints[targetIndex + 1];
+    const left = bezierPoints[targetIndex];
+    const right = bezierPoints[targetIndex + 1];
     const newPoint = {
       x: Math.round(((left.x + right.x) / 2) * 100) / 100,
       y: Math.round(((left.y + right.y) / 2) * 100) / 100,
@@ -267,23 +267,23 @@
       handleMode: 'broken',
     };
 
-    const next = [...customPoints];
+    const next = [...bezierPoints];
     next.splice(targetIndex + 1, 0, newPoint);
-    updateCustomPoints(next);
-    selectedCustomPoint = targetIndex + 1;
+    updateBezierPoints(next);
+    selectedBezierPoint = targetIndex + 1;
   }
 
-  function removeCustomPoint() {
-    if (!canRemoveCustomPoint) return;
+  function removeBezierPoint() {
+    if (!canRemoveBezierPoint) return;
 
-    const isRemovableSelection = isRemovableCustomPoint(selectedCustomPoint);
-    const removeIndex = isRemovableSelection ? selectedCustomPoint : customPoints.length - 2;
+    const isRemovableSelection = isRemovableBezierPoint(selectedBezierPoint);
+    const removeIndex = isRemovableSelection ? selectedBezierPoint : bezierPoints.length - 2;
 
-    const next = [...customPoints];
+    const next = [...bezierPoints];
     next.splice(removeIndex, 1);
-    updateCustomPoints(next);
-    selectedCustomPoint = null;
-    selectedCustomHandle = null;
+    updateBezierPoints(next);
+    selectedBezierPoint = null;
+    selectedBezierHandle = null;
   }
 
   function curveLayout() {
@@ -337,21 +337,21 @@
       && cssY <= PAD_TOP + plotH;
   }
 
-  function insertCustomPointAt(cssX, cssY) {
-    if (!canAddCustomPoint || !isInsidePlotArea(cssX, cssY)) return null;
+  function insertBezierPointAt(cssX, cssY) {
+    if (!canAddBezierPoint || !isInsidePlotArea(cssX, cssY)) return null;
 
     const rawX = valueFromCurveX(cssX);
     const rawY = valueFromCurveY(cssY);
-    let insertIndex = customPoints.findIndex((point) => point.x > rawX);
+    let insertIndex = bezierPoints.findIndex((point) => point.x > rawX);
 
     if (insertIndex <= 0) {
       insertIndex = 1;
     } else if (insertIndex === -1) {
-      insertIndex = customPoints.length - 1;
+      insertIndex = bezierPoints.length - 1;
     }
 
-    const prevX = customPoints[insertIndex - 1].x;
-    const nextX = customPoints[insertIndex].x;
+    const prevX = bezierPoints[insertIndex - 1].x;
+    const nextX = bezierPoints[insertIndex].x;
     const minX = prevX + 0.01;
     const maxX = nextX - 0.01;
     if (minX > maxX) return null;
@@ -362,7 +362,7 @@
 
     const y = Math.round(rawY * 100) / 100;
 
-    const next = [...customPoints];
+    const next = [...bezierPoints];
     next.splice(insertIndex, 0, {
       x,
       y,
@@ -372,16 +372,16 @@
       outY: y,
       handleMode: 'broken',
     });
-    updateCustomPoints(next);
-    selectedCustomPoint = insertIndex;
+    updateBezierPoints(next);
+    selectedBezierPoint = insertIndex;
     return insertIndex;
   }
 
-  function openCustomContextMenu(event) {
+  function openBezierContextMenu(event) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!customActive) {
+    if (!bezierActive) {
       closeMenus();
       return;
     }
@@ -389,79 +389,79 @@
     const rect = curveCanvasEl.getBoundingClientRect();
     const cssX = event.clientX - rect.left;
     const cssY = event.clientY - rect.top;
-    const hitIndex = hitTestCustomPoint(cssX, cssY);
+    const hitIndex = hitTestBezierPoint(cssX, cssY);
     const insidePlot = isInsidePlotArea(cssX, cssY);
-    const canAddAtLocation = canAddCustomPoint && insidePlot;
-    const canRemoveAtPoint = isRemovableCustomPoint(hitIndex);
+    const canAddAtLocation = canAddBezierPoint && insidePlot;
+    const canRemoveAtPoint = isRemovableBezierPoint(hitIndex);
 
     if (!canAddAtLocation && !canRemoveAtPoint) {
       closeMenus();
       return;
     }
 
-    customContextMenuOpen = true;
-    customContextMenuX = event.clientX;
-    customContextMenuY = event.clientY;
-    customContextValueX = canAddAtLocation ? valueFromCurveX(cssX) : null;
-    customContextValueY = canAddAtLocation ? valueFromCurveY(cssY) : null;
-    customContextPointIndex = hitIndex;
+    bezierContextMenuOpen = true;
+    bezierContextMenuX = event.clientX;
+    bezierContextMenuY = event.clientY;
+    bezierContextValueX = canAddAtLocation ? valueFromCurveX(cssX) : null;
+    bezierContextValueY = canAddAtLocation ? valueFromCurveY(cssY) : null;
+    bezierContextPointIndex = hitIndex;
     if (hitIndex !== null) {
-      selectedCustomPoint = hitIndex;
+      selectedBezierPoint = hitIndex;
     }
     menuCopyOpen = false;
     menuSaveOpen = false;
   }
 
-  function addCustomPointFromContextMenu(event) {
+  function addBezierPointFromContextMenu(event) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (customContextValueX === null || customContextValueY === null) {
+    if (bezierContextValueX === null || bezierContextValueY === null) {
       closeMenus();
       return;
     }
 
     const { plotW, plotH } = curveLayout();
-    const cssX = PAD_LEFT + customContextValueX * plotW;
-    const cssY = PAD_TOP + plotH - customContextValueY * plotH;
-    const insertedIndex = insertCustomPointAt(cssX, cssY);
+    const cssX = PAD_LEFT + bezierContextValueX * plotW;
+    const cssY = PAD_TOP + plotH - bezierContextValueY * plotH;
+    const insertedIndex = insertBezierPointAt(cssX, cssY);
     if (insertedIndex !== null) {
-      selectedCustomPoint = insertedIndex;
+      selectedBezierPoint = insertedIndex;
     }
 
     closeMenus();
   }
 
-  function removeCustomPointFromContextMenu(event) {
+  function removeBezierPointFromContextMenu(event) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!isRemovableCustomPoint(customContextPointIndex)) {
+    if (!isRemovableBezierPoint(bezierContextPointIndex)) {
       closeMenus();
       return;
     }
 
-    selectedCustomPoint = customContextPointIndex;
-    removeCustomPoint();
+    selectedBezierPoint = bezierContextPointIndex;
+    removeBezierPoint();
     closeMenus();
   }
 
-  function setCustomPointHandleModeFromContextMenu(mode, event) {
+  function setBezierPointHandleModeFromContextMenu(mode, event) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!isRemovableCustomPoint(customContextPointIndex)) {
+    if (!isRemovableBezierPoint(bezierContextPointIndex)) {
       closeMenus();
       return;
     }
 
-    const next = [...customPoints];
-    next[customContextPointIndex] = {
-      ...next[customContextPointIndex],
+    const next = [...bezierPoints];
+    next[bezierContextPointIndex] = {
+      ...next[bezierContextPointIndex],
       handleMode: mode === 'mirrored' ? 'mirrored' : 'broken',
     };
 
-    updateCustomPoints(next);
+    updateBezierPoints(next);
     closeMenus();
   }
 
@@ -570,16 +570,16 @@
       curveCtx.moveTo(PAD_LEFT, fy);
       curveCtx.lineTo(PAD_LEFT + plotW, fy);
       curveCtx.stroke();
-    } else if (customActive) {
+    } else if (bezierActive) {
       curveCtx.strokeStyle = CURVE_COLOR;
       curveCtx.beginPath();
-      if (customPoints.length > 0) {
-        const first = customPoints[0];
+      if (bezierPoints.length > 0) {
+        const first = bezierPoints[0];
         curveCtx.moveTo(PAD_LEFT + first.x * plotW, PAD_TOP + plotH - first.y * plotH);
 
-        for (let i = 0; i < customPoints.length - 1; i += 1) {
-          const a = customPoints[i];
-          const b = customPoints[i + 1];
+        for (let i = 0; i < bezierPoints.length - 1; i += 1) {
+          const a = bezierPoints[i];
+          const b = bezierPoints[i + 1];
           curveCtx.bezierCurveTo(
             PAD_LEFT + a.outX * plotW,
             PAD_TOP + plotH - a.outY * plotH,
@@ -593,12 +593,12 @@
       curveCtx.stroke();
 
       if (showNodes) {
-        for (let i = 0; i < customPoints.length; i += 1) {
-          const point = customPoints[i];
+        for (let i = 0; i < bezierPoints.length; i += 1) {
+          const point = bezierPoints[i];
           const nodeX = PAD_LEFT + point.x * plotW;
           const nodeY = PAD_TOP + plotH - point.y * plotH;
-          const isEndpoint = i === 0 || i === customPoints.length - 1;
-          const isSelected = i === selectedCustomPoint;
+          const isEndpoint = i === 0 || i === bezierPoints.length - 1;
+          const isSelected = i === selectedBezierPoint;
 
           if (showNodeGuides) {
             if (i > 0) {
@@ -612,7 +612,7 @@
               curveCtx.lineTo(inX, inY);
               curveCtx.stroke();
 
-              curveCtx.fillStyle = i === selectedCustomPoint && selectedCustomHandle === 'in'
+              curveCtx.fillStyle = i === selectedBezierPoint && selectedBezierHandle === 'in'
                 ? '#111111'
                 : '#ffffff';
               curveCtx.strokeStyle = '#2255cc';
@@ -623,7 +623,7 @@
               curveCtx.stroke();
             }
 
-            if (i < customPoints.length - 1) {
+            if (i < bezierPoints.length - 1) {
               const outX = PAD_LEFT + point.outX * plotW;
               const outY = PAD_TOP + plotH - point.outY * plotH;
               curveCtx.strokeStyle = 'rgba(0, 0, 0, 0.22)';
@@ -634,7 +634,7 @@
               curveCtx.lineTo(outX, outY);
               curveCtx.stroke();
 
-              curveCtx.fillStyle = i === selectedCustomPoint && selectedCustomHandle === 'out'
+              curveCtx.fillStyle = i === selectedBezierPoint && selectedBezierHandle === 'out'
                 ? '#111111'
                 : '#ffffff';
               curveCtx.strokeStyle = '#2255cc';
@@ -782,33 +782,33 @@
 
   function onCurvePointerDown(event) {
     if (event.button === 2) return;
-    customContextMenuOpen = false;
+    bezierContextMenuOpen = false;
 
     const rect = curveCanvasEl.getBoundingClientRect();
     const cssX = event.clientX - rect.left;
     const cssY = event.clientY - rect.top;
 
-    if (customActive) {
-      const hitHandle = hitTestCustomHandle(cssX, cssY);
+    if (bezierActive) {
+      const hitHandle = hitTestBezierHandle(cssX, cssY);
       if (hitHandle) {
-        selectedCustomPoint = hitHandle.index;
-        selectedCustomHandle = hitHandle.handle;
-        draggingNode = { type: 'custom-handle', index: hitHandle.index, handle: hitHandle.handle };
+        selectedBezierPoint = hitHandle.index;
+        selectedBezierHandle = hitHandle.handle;
+        draggingNode = { type: 'bezier-handle', index: hitHandle.index, handle: hitHandle.handle };
         if (curveCanvasEl?.setPointerCapture) {
           curveCanvasEl.setPointerCapture(event.pointerId);
         }
         return;
       }
 
-      const hitIndex = hitTestCustomPoint(cssX, cssY);
+      const hitIndex = hitTestBezierPoint(cssX, cssY);
       if (hitIndex === null) {
-        selectedCustomPoint = null;
-        selectedCustomHandle = null;
+        selectedBezierPoint = null;
+        selectedBezierHandle = null;
         return;
       }
-      selectedCustomPoint = hitIndex;
-      selectedCustomHandle = null;
-      draggingNode = { type: 'custom-anchor', index: hitIndex };
+      selectedBezierPoint = hitIndex;
+      selectedBezierHandle = null;
+      draggingNode = { type: 'bezier-anchor', index: hitIndex };
       if (curveCanvasEl?.setPointerCapture) {
         curveCanvasEl.setPointerCapture(event.pointerId);
       }
@@ -830,11 +830,11 @@
     const cssX = event.clientX - rect.left;
     const cssY = event.clientY - rect.top;
 
-    if (draggingNode?.type === 'custom-anchor') {
+    if (draggingNode?.type === 'bezier-anchor') {
       const pointIndex = draggingNode.index;
-      if (pointIndex === null || pointIndex >= customPoints.length) return;
+      if (pointIndex === null || pointIndex >= bezierPoints.length) return;
 
-      const next = [...customPoints];
+      const next = [...bezierPoints];
       const point = next[pointIndex];
       const prevX = pointIndex > 0 ? next[pointIndex - 1].x : 0;
       const nextX = pointIndex < next.length - 1 ? next[pointIndex + 1].x : 1;
@@ -863,17 +863,17 @@
         outY: point.outY + dy,
       };
 
-      updateCustomPoints(next);
+      updateBezierPoints(next);
       drawCurveCanvas();
       return;
     }
 
-    if (draggingNode?.type === 'custom-handle') {
+    if (draggingNode?.type === 'bezier-handle') {
       const pointIndex = draggingNode.index;
       const handle = draggingNode.handle;
-      if (pointIndex === null || pointIndex >= customPoints.length) return;
+      if (pointIndex === null || pointIndex >= bezierPoints.length) return;
 
-      const next = [...customPoints];
+      const next = [...bezierPoints];
       const point = next[pointIndex];
       const xVal = Math.round(valueFromCurveX(cssX) * 100) / 100;
       const yVal = Math.round(valueFromCurveY(cssY) * 100) / 100;
@@ -900,7 +900,7 @@
       }
 
       next[pointIndex] = point;
-      updateCustomPoints(next);
+      updateBezierPoints(next);
       drawCurveCanvas();
       return;
     }
@@ -929,10 +929,10 @@
       return;
     }
 
-    if (customActive) {
-      if (hitTestCustomHandle(cssX, cssY)) {
+    if (bezierActive) {
+      if (hitTestBezierHandle(cssX, cssY)) {
         curveCanvasEl.style.cursor = 'crosshair';
-      } else if (hitTestCustomPoint(cssX, cssY) !== null) {
+      } else if (hitTestBezierPoint(cssX, cssY) !== null) {
         curveCanvasEl.style.cursor = 'move';
       } else {
         curveCanvasEl.style.cursor = 'default';
@@ -970,23 +970,23 @@
     event.stopPropagation();
     menuCopyOpen = !menuCopyOpen;
     menuSaveOpen = false;
-    customContextMenuOpen = false;
+    bezierContextMenuOpen = false;
   }
 
   function toggleSaveMenu(event) {
     event.stopPropagation();
     menuSaveOpen = !menuSaveOpen;
     menuCopyOpen = false;
-    customContextMenuOpen = false;
+    bezierContextMenuOpen = false;
   }
 
   function closeMenus() {
     menuCopyOpen = false;
     menuSaveOpen = false;
-    customContextMenuOpen = false;
-    customContextValueX = null;
-    customContextValueY = null;
-    customContextPointIndex = null;
+    bezierContextMenuOpen = false;
+    bezierContextValueX = null;
+    bezierContextValueY = null;
+    bezierContextPointIndex = null;
   }
 
   function buildChartCanvas(region) {
@@ -1099,41 +1099,41 @@
       on:pointermove={onCurvePointerMove}
       on:pointerup={onCurvePointerUp}
       on:pointerleave={onCurvePointerLeave}
-      on:contextmenu={openCustomContextMenu}
+      on:contextmenu={openBezierContextMenu}
     ></canvas>
 
-    {#if customContextMenuOpen}
+    {#if bezierContextMenuOpen}
       <div
         class="canvas-context-menu"
-        style={`left: ${customContextMenuX}px; top: ${customContextMenuY}px;`}
+        style={`left: ${bezierContextMenuX}px; top: ${bezierContextMenuY}px;`}
       >
-        {#if isRemovableCustomPoint(customContextPointIndex)}
+        {#if isRemovableBezierPoint(bezierContextPointIndex)}
           <button
             type="button"
-            disabled={customPoints[customContextPointIndex].handleMode === 'mirrored'}
-            on:click={(event) => setCustomPointHandleModeFromContextMenu('mirrored', event)}
+            disabled={bezierPoints[bezierContextPointIndex].handleMode === 'mirrored'}
+            on:click={(event) => setBezierPointHandleModeFromContextMenu('mirrored', event)}
           >
             Handle mode: mirrored
           </button>
           <button
             type="button"
-            disabled={customPoints[customContextPointIndex].handleMode === 'broken'}
-            on:click={(event) => setCustomPointHandleModeFromContextMenu('broken', event)}
+            disabled={bezierPoints[bezierContextPointIndex].handleMode === 'broken'}
+            on:click={(event) => setBezierPointHandleModeFromContextMenu('broken', event)}
           >
             Handle mode: broken
           </button>
           <button
             type="button"
-            on:click={removeCustomPointFromContextMenu}
+            on:click={removeBezierPointFromContextMenu}
           >
             Remove point
           </button>
         {/if}
-        {#if customContextValueX !== null && customContextValueY !== null}
+        {#if bezierContextValueX !== null && bezierContextValueY !== null}
           <button
             type="button"
-            disabled={!canAddCustomPoint}
-            on:click={addCustomPointFromContextMenu}
+            disabled={!canAddBezierPoint}
+            on:click={addBezierPointFromContextMenu}
           >
             Add point here
           </button>
@@ -1188,11 +1188,11 @@
     {defaultParams}
     {curveActive}
     {flatActive}
-    {customActive}
-    {canAddCustomPoint}
-    {canRemoveCustomPoint}
-    onAddCustomPoint={addCustomPoint}
-    onRemoveCustomPoint={removeCustomPoint}
+    {bezierActive}
+    {canAddBezierPoint}
+    {canRemoveBezierPoint}
+    onAddBezierPoint={addBezierPoint}
+    onRemoveBezierPoint={removeBezierPoint}
     {onResponseDataChange}
     {onResponseShowCurveEffectChange}
   />
