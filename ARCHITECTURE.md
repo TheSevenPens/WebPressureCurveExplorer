@@ -77,7 +77,7 @@ App.svelte (root — state owner)
 ### `PressureChartFormat.svelte`
 **Role:** Four checkboxes to toggle chart display options.
 
-**Props (all bindable):** `showGrid`, `showLabels`, `showNodes`, `showNodeGuides`, `curveActive` (disables node toggles when no active curve), `onToggle` callback
+**Props (all bindable):** `showGrid`, `showLabels`, `showNodes`, `showNodeGuides`, `showRawIndicator`, `showEffectiveIndicator`, `curveActive` (disables node toggles when no active curve), `onToggle` callback
 
 **Parent:** `PressureChart`
 
@@ -87,16 +87,16 @@ App.svelte (root — state owner)
 **Role:** Curve type selector and all parameter sliders. Conditionally renders controls based on the active curve type.
 
 **Props (bindable):** `params`, `defaultParams`
-**Props (read):** `curveActive`, `flatActive`, `customActive`, `canAddCustomPoint`, `canRemoveCustomPoint`
-**Callbacks:** `onAddCustomPoint`, `onRemoveCustomPoint`, `onResponseDataChange`, `onResponseShowCurveEffectChange`
+**Props (read):** `curveActive`, `flatActive`, `bezierActive`, `canAddBezierPoint`, `canRemoveBezierPoint`
+**Callbacks:** `onAddBezierPoint`, `onRemoveBezierPoint`, `onResponseDataChange`, `onResponseShowCurveEffectChange`
 
 **Conditional rendering:**
 | Curve type | Controls shown |
 |---|---|
 | `null-effect` | None (no controls, no reset) |
 | `flat` | Height slider |
-| `power` / `sigmoid` | CurveAmount, InputMin, InputMax, OutputMin, OutputMax sliders |
-| `custom` | Add/Remove point buttons |
+| `basic` / `sigmoid` | CurveAmount, InputMin, InputMax, OutputMin, OutputMax sliders |
+| `bezier` | Add/Remove point buttons |
 | Any except null | Reset button |
 
 **Children:** `PositionControls`, `PressureSmoothingControls`, `NamedSlider` (multiple), `PressureResponsePanel`
@@ -236,19 +236,19 @@ The main entry point. Applies the full pressure transformation:
 |---|---|
 | `null-effect` | Pass-through (`x` unchanged) |
 | `flat` | Return `flatLevel` constant |
-| `power` | Power law: exponent derived from `softness` |
+| `basic` | Power law: exponent derived from `softness` |
 | `sigmoid` | Logistic function: `k = softness × 14` |
-| `custom` | Cubic Bezier evaluation via binary search |
+| `bezier` | Cubic Bezier evaluation via binary search |
 
 **Internal helpers:**
-- `rawCurveOutput(xNorm, params)` — sigmoid/power calculation
+- `rawCurveOutput(xNorm, params)` — sigmoid/basic calculation
 - `rawCurveSlope(xNorm, params)` — numerical derivative (for Hermite transitions)
 - `cubicHermite(t, y0, m0, y1, m1)` — cubic Hermite interpolation
 - `normalizeCustomPoints(points)` — validate/sort/clamp bezier control points
 - `buildCustomSegments(points)` — convert points to bezier segment definitions
 - `cubicAt(t, p0, c0, c1, p1)` — evaluate cubic Bezier at parameter `t`
 - `solveBezierTForX(x, segment)` — binary search for `t` given `x` (28 iterations)
-- `evaluateCustomCurve(x, points)` — full custom curve evaluation
+- `evaluateCustomCurve(x, points)` — full bezier curve evaluation
 
 ---
 
@@ -259,7 +259,7 @@ The `params` object is the central data structure passed through the entire app:
 ```js
 {
   // Curve type
-  curveType: 'null-effect' | 'flat' | 'power' | 'sigmoid' | 'custom',
+  curveType: 'null-effect' | 'flat' | 'basic' | 'sigmoid' | 'bezier',
 
   // Pressure input remapping
   inputMinimum: number,   // 0–1
@@ -278,8 +278,8 @@ The `params` object is the central data structure passed through the entire app:
   // Boundary transition smoothing
   transitionWidth: number, // 0–0.5
 
-  // Custom bezier control points (2–16 points)
-  customPoints: [
+  // Bezier control points (2–16 points)
+  bezierPoints: [
     {
       x: number, y: number,         // Point position (sorted by x)
       inX: number, inY: number,     // Incoming handle
@@ -330,10 +330,11 @@ Each record is one empirical measurement: the physical force applied in **gram-f
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  App.svelte                                             │
-│  State: params, livePressure                            │
+│  State: params, livePressure, liveRawPressure           │
 └────────────────┬──────────────────┬─────────────────────┘
                  │ bind:params      │ params (read)
                  │ livePressure     │ bind:livePressure
+                 │ liveRawPressure  │ bind:liveRawPressure
                  ▼                  ▼
   ┌────────────────────────────┐  ┌──────────────────────┐
   │  PressureChart             │  │  DrawingCanvas        │
@@ -346,7 +347,7 @@ Each record is one empirical measurement: the physical force applied in **gram-f
   │  ┌────────────────┐        │  │    ↓ brush size       │
   │  │ResponseChart   │◄─data──┤  │                       │
   │  │  params        │◄─parm──┤  │  livePressure ──────► │
-  │  │  showEffect    │◄─bool──┤  │  (sent to Chart)      │
+  │  │  showEffect    │◄─bool──┤  │  liveRawPressure ───► │
   │  └────────────────┘        │  └──────────────────────┘
   │  ┌────────────────┐        │
   │  │CurveControls   │        │

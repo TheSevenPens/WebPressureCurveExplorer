@@ -117,6 +117,7 @@
         sliderStep={0.01}
         valueDecimals={2}
         valuePrecision={2}
+        defaultValue={defaultParams.flatLevel}
         onValueChange={(value) => handleSliderValue('flatLevel', value)}
       />
     {/if}
@@ -133,6 +134,7 @@
         sliderStep={0.01}
         valueDecimals={2}
         valuePrecision={2}
+        defaultValue={defaultParams.softness}
         onValueChange={(value) => handleSliderValue('softness', value)}
       />
     {/if}
@@ -165,6 +167,7 @@
         sliderStep={0.01}
         valueDecimals={2}
         valuePrecision={2}
+        defaultValue={defaultParams.inputMinimum}
         onValueChange={(value) => handleSliderValue('inputMinimum', value)}
       />
     {/if}
@@ -181,6 +184,7 @@
         sliderStep={0.01}
         valueDecimals={2}
         valuePrecision={2}
+        defaultValue={defaultParams.inputMaximum}
         onValueChange={(value) => handleSliderValue('inputMaximum', value)}
       />
     {/if}
@@ -197,6 +201,7 @@
         sliderStep={0.01}
         valueDecimals={2}
         valuePrecision={2}
+        defaultValue={defaultParams.minimum}
         onValueChange={(value) => handleSliderValue('minimum', value)}
       />
     {/if}
@@ -213,6 +218,7 @@
         sliderStep={0.01}
         valueDecimals={2}
         valuePrecision={2}
+        defaultValue={defaultParams.maximum}
         onValueChange={(value) => handleSliderValue('maximum', value)}
       />
     {/if}
