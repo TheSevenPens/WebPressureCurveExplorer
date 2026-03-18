@@ -42,6 +42,9 @@
 
     const { width, height, plotW, plotH } = layout();
 
+    const records = data?.records ?? [];
+    const maxGf = records.length ? Math.max(...records.map((r) => r[0])) : 1;
+
     // Background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
@@ -74,7 +77,8 @@
     ctx.textBaseline = 'top';
     for (let i = 0; i <= 4; i += 1) {
       const gx = PAD_LEFT + (i / 4) * plotW;
-      const label = (i * 0.25).toFixed(2).replace(/\.?0+$/, '');
+      const gfValue = (i / 4) * maxGf;
+      const label = Number.isInteger(gfValue) ? String(gfValue) : gfValue.toFixed(1);
       ctx.fillText(label, gx, PAD_TOP + plotH + X_LABEL_SPACING);
     }
 
@@ -90,7 +94,7 @@
     ctx.font = '9px Segoe UI, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillText('PHYSICAL (normalized)', PAD_LEFT + plotW / 2, height - X_AXIS_LABEL_SPACING);
+    ctx.fillText('PHYSICAL (gf)', PAD_LEFT + plotW / 2, height - X_AXIS_LABEL_SPACING);
 
     ctx.save();
     ctx.translate(Y_AXIS_LABEL_SPACING, PAD_TOP + plotH / 2);
@@ -100,11 +104,7 @@
     ctx.fillText('LOGICAL %', 0, 0);
     ctx.restore();
 
-    if (!data?.records?.length) return;
-
-    const records = data.records;
-    const maxGf = Math.max(...records.map((r) => r[0]));
-    if (maxGf === 0) return;
+    if (!records.length || maxGf === 0) return;
 
     // Connecting line
     ctx.strokeStyle = RESPONSE_COLOR;
@@ -130,12 +130,6 @@
       ctx.fill();
     }
 
-    // Max gf annotation
-    ctx.fillStyle = '#999';
-    ctx.font = '9px Consolas, monospace';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(`max: ${maxGf}gf`, PAD_LEFT + plotW - 2, PAD_TOP + plotH - 2);
   }
 
   function resize() {
