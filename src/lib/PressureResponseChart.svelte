@@ -16,6 +16,10 @@
   export let data = null;
   export let params = null;
   export let showCurveEffect = true;
+  export let liveRawPressure = null;
+  export let livePressure = null;
+  export let showRawIndicator = true;
+  export let showEffectiveIndicator = true;
 
   let canvasEl;
   let ctx;
@@ -28,6 +32,10 @@
     data;
     params;
     showCurveEffect;
+    liveRawPressure;
+    livePressure;
+    showRawIndicator;
+    showEffectiveIndicator;
     draw();
   }
 
@@ -109,6 +117,22 @@
     ctx.fillText(showCurveEffect && params ? 'OUTPUT %' : 'LOGICAL %', 0, 0);
     ctx.restore();
 
+    function drawIndicator(yNorm, solidColor, fadedColor) {
+      const cy = PAD_TOP + plotH - yNorm * plotH;
+      ctx.strokeStyle = fadedColor;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath();
+      ctx.moveTo(PAD_LEFT, cy);
+      ctx.lineTo(PAD_LEFT + plotW, cy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = solidColor;
+      ctx.beginPath();
+      ctx.arc(PAD_LEFT, cy, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     if (!records.length || maxGf === 0) return;
 
     const getY = (logPct) => {
@@ -142,6 +166,16 @@
       ctx.fill();
     }
 
+    if (showRawIndicator && liveRawPressure !== null) {
+      drawIndicator(liveRawPressure, '#8833cc', 'rgba(136, 51, 204, 0.25)');
+    }
+
+    if (showEffectiveIndicator && livePressure !== null) {
+      const yNorm = (showCurveEffect && params)
+        ? applyPressureCurve(livePressure, params)
+        : livePressure;
+      drawIndicator(yNorm, '#14a050', 'rgba(20, 160, 80, 0.25)');
+    }
   }
 
   function resize() {

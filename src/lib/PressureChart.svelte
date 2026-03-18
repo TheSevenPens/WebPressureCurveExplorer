@@ -735,28 +735,6 @@
       }
     }
 
-    if (showRawIndicator && liveRawPressure !== null) {
-      const mapped = applyPressureCurve(liveRawPressure, params);
-      const dotX = PAD_LEFT + liveRawPressure * plotW;
-      const dotY = PAD_TOP + plotH - mapped * plotH;
-
-      curveCtx.strokeStyle = 'rgba(130, 60, 200, 0.2)';
-      curveCtx.lineWidth = 1;
-      curveCtx.setLineDash([3, 4]);
-      curveCtx.beginPath();
-      curveCtx.moveTo(dotX, PAD_TOP + plotH);
-      curveCtx.lineTo(dotX, dotY);
-      curveCtx.moveTo(PAD_LEFT, dotY);
-      curveCtx.lineTo(dotX, dotY);
-      curveCtx.stroke();
-      curveCtx.setLineDash([]);
-
-      curveCtx.fillStyle = '#8833cc';
-      curveCtx.beginPath();
-      curveCtx.arc(dotX, dotY, 4, 0, Math.PI * 2);
-      curveCtx.fill();
-    }
-
     if (showEffectiveIndicator && livePressure !== null) {
       const mapped = applyPressureCurve(livePressure, params);
       const dotX = PAD_LEFT + livePressure * plotW;
@@ -774,6 +752,28 @@
       curveCtx.setLineDash([]);
 
       curveCtx.fillStyle = '#14a050';
+      curveCtx.beginPath();
+      curveCtx.arc(dotX, dotY, 4, 0, Math.PI * 2);
+      curveCtx.fill();
+    }
+
+    if (showRawIndicator && liveRawPressure !== null) {
+      const mapped = applyPressureCurve(liveRawPressure, params);
+      const dotX = PAD_LEFT + liveRawPressure * plotW;
+      const dotY = PAD_TOP + plotH - mapped * plotH;
+
+      curveCtx.strokeStyle = 'rgba(130, 60, 200, 0.2)';
+      curveCtx.lineWidth = 1;
+      curveCtx.setLineDash([3, 4]);
+      curveCtx.beginPath();
+      curveCtx.moveTo(dotX, PAD_TOP + plotH);
+      curveCtx.lineTo(dotX, dotY);
+      curveCtx.moveTo(PAD_LEFT, dotY);
+      curveCtx.lineTo(dotX, dotY);
+      curveCtx.stroke();
+      curveCtx.setLineDash([]);
+
+      curveCtx.fillStyle = '#8833cc';
       curveCtx.beginPath();
       curveCtx.arc(dotX, dotY, 4, 0, Math.PI * 2);
       curveCtx.fill();
@@ -1175,6 +1175,10 @@
         data={pressureResponseData}
         {params}
         showCurveEffect={showResponseCurveEffect}
+        {liveRawPressure}
+        {livePressure}
+        {showRawIndicator}
+        {showEffectiveIndicator}
       />
     {/if}
   </div>
