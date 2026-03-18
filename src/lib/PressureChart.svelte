@@ -26,6 +26,12 @@
   export let livePressure = null;
   export let defaultParams;
 
+  let pressureResponseData = null;
+
+  function onResponseDataChange(data) {
+    pressureResponseData = data;
+  }
+
   let showGrid = true;
   let showLabels = true;
   let showNodes = true;
@@ -66,6 +72,7 @@
     showLabels;
     showNodes;
     showNodeGuides;
+    pressureResponseData;
     drawCurveCanvas();
   }
 
@@ -469,6 +476,56 @@
     drawCurveCanvas();
   }
 
+  function drawResponseOverlay(plotW, plotH) {
+    if (!pressureResponseData?.records?.length) return;
+
+    const records = pressureResponseData.records;
+    const maxGf = Math.max(...records.map((r) => r[0]));
+    if (maxGf === 0) return;
+
+    const COLOR = '#cc6600';
+
+    curveCtx.save();
+    curveCtx.globalAlpha = 0.75;
+
+    // Connecting line
+    curveCtx.strokeStyle = COLOR;
+    curveCtx.lineWidth = 1.5;
+    curveCtx.setLineDash([]);
+    curveCtx.beginPath();
+    let first = true;
+    for (const [gf, logPct] of records) {
+      const cx = PAD_LEFT + (gf / maxGf) * plotW;
+      const cy = PAD_TOP + plotH - (logPct / 100) * plotH;
+      if (first) { curveCtx.moveTo(cx, cy); first = false; }
+      else curveCtx.lineTo(cx, cy);
+    }
+    curveCtx.stroke();
+
+    // Data points
+    curveCtx.fillStyle = COLOR;
+    for (const [gf, logPct] of records) {
+      const cx = PAD_LEFT + (gf / maxGf) * plotW;
+      const cy = PAD_TOP + plotH - (logPct / 100) * plotH;
+      curveCtx.beginPath();
+      curveCtx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+      curveCtx.fill();
+    }
+
+    // Legend label
+    curveCtx.globalAlpha = 0.9;
+    curveCtx.fillStyle = COLOR;
+    curveCtx.font = '9px Consolas, monospace';
+    curveCtx.textAlign = 'right';
+    curveCtx.textBaseline = 'top';
+    const label = pressureResponseData.inventoryid
+      ? `${pressureResponseData.inventoryid} phys.response`
+      : 'phys.response';
+    curveCtx.fillText(label, PAD_LEFT + plotW - 2, PAD_TOP + 3);
+
+    curveCtx.restore();
+  }
+
   function drawCurveCanvas() {
     if (!curveCanvasEl || !curveCtx || curveCanvasEl.width === 0) return;
 
@@ -716,6 +773,8 @@
         curveCtx.stroke();
       }
     }
+
+    drawResponseOverlay(plotW, plotH);
 
     if (livePressure !== null) {
       const mapped = applyPressureCurve(livePressure, params);
@@ -1139,5 +1198,6 @@
     {canRemoveCustomPoint}
     onAddCustomPoint={addCustomPoint}
     onRemoveCustomPoint={removeCustomPoint}
+    {onResponseDataChange}
   />
 </div>

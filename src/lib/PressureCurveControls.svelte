@@ -2,6 +2,7 @@
   import NamedSlider from './NamedSlider.svelte';
   import PositionControls from './PositionControls.svelte';
   import PressureSmoothingControls from './PressureSmoothingControls.svelte';
+  import PressureResponsePanel from './PressureResponsePanel.svelte';
 
   export let params;
   export let defaultParams;
@@ -12,6 +13,7 @@
   export let canRemoveCustomPoint = false;
   export let onAddCustomPoint = () => {};
   export let onRemoveCustomPoint = () => {};
+  export let onResponseDataChange = () => {};
 
   function patchParams(nextValues) {
     params = { ...params, ...nextValues };
@@ -217,5 +219,7 @@
     {#if params.curveType !== 'null-effect'}
       <button id="btn-reset" on:click={resetToDefaults}>Reset curve</button>
     {/if}
+
+    <PressureResponsePanel onDataChange={onResponseDataChange} />
   </div>
 </div>
