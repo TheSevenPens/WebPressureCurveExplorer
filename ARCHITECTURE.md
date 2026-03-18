@@ -58,6 +58,7 @@ App.svelte (root — state owner)
 
 **Responsibilities:**
 - Renders the curve, grid, axis labels, control nodes, and bezier handles via Canvas 2D
+- Draws the **live pressure indicator** — a dot that travels along the curve at the current `livePressure` position, with dashed crosshair lines to both axes. Drawn inline at the end of `drawCurveCanvas()`; fed by the `livePressure` prop.
 - Handles pointer events for dragging control points and handles (custom curve mode)
 - Provides a right-click context menu to insert/delete custom curve points
 - Exports the chart as PNG (copy to clipboard) or JPEG (save file)
