@@ -25,6 +25,7 @@
 
   export let params;
   export let livePressure = null;
+  export let liveRawPressure = null;
   export let defaultParams;
 
   let pressureResponseData = null;
@@ -42,6 +43,8 @@
   let showLabels = true;
   let showNodes = true;
   let showNodeGuides = true;
+  let showRawIndicator = true;
+  let showEffectiveIndicator = true;
 
   let menuCopyOpen = false;
   let menuSaveOpen = false;
@@ -74,10 +77,13 @@
   $: if (isReady) {
     params;
     livePressure;
+    liveRawPressure;
     showGrid;
     showLabels;
     showNodes;
     showNodeGuides;
+    showRawIndicator;
+    showEffectiveIndicator;
     drawCurveCanvas();
   }
 
@@ -729,12 +735,12 @@
       }
     }
 
-    if (livePressure !== null) {
+    if (showEffectiveIndicator && livePressure !== null) {
       const mapped = applyPressureCurve(livePressure, params);
       const dotX = PAD_LEFT + livePressure * plotW;
       const dotY = PAD_TOP + plotH - mapped * plotH;
 
-      curveCtx.strokeStyle = 'rgba(200, 50, 80, 0.2)';
+      curveCtx.strokeStyle = 'rgba(20, 160, 80, 0.2)';
       curveCtx.lineWidth = 1;
       curveCtx.setLineDash([3, 4]);
       curveCtx.beginPath();
@@ -745,7 +751,29 @@
       curveCtx.stroke();
       curveCtx.setLineDash([]);
 
-      curveCtx.fillStyle = '#cc3355';
+      curveCtx.fillStyle = '#14a050';
+      curveCtx.beginPath();
+      curveCtx.arc(dotX, dotY, 4, 0, Math.PI * 2);
+      curveCtx.fill();
+    }
+
+    if (showRawIndicator && liveRawPressure !== null) {
+      const mapped = applyPressureCurve(liveRawPressure, params);
+      const dotX = PAD_LEFT + liveRawPressure * plotW;
+      const dotY = PAD_TOP + plotH - mapped * plotH;
+
+      curveCtx.strokeStyle = 'rgba(130, 60, 200, 0.2)';
+      curveCtx.lineWidth = 1;
+      curveCtx.setLineDash([3, 4]);
+      curveCtx.beginPath();
+      curveCtx.moveTo(dotX, PAD_TOP + plotH);
+      curveCtx.lineTo(dotX, dotY);
+      curveCtx.moveTo(PAD_LEFT, dotY);
+      curveCtx.lineTo(dotX, dotY);
+      curveCtx.stroke();
+      curveCtx.setLineDash([]);
+
+      curveCtx.fillStyle = '#8833cc';
       curveCtx.beginPath();
       curveCtx.arc(dotX, dotY, 4, 0, Math.PI * 2);
       curveCtx.fill();
@@ -1136,6 +1164,8 @@
       bind:showLabels
       bind:showNodes
       bind:showNodeGuides
+      bind:showRawIndicator
+      bind:showEffectiveIndicator
       {curveActive}
       onToggle={drawCurveCanvas}
     />
@@ -1145,6 +1175,10 @@
         data={pressureResponseData}
         {params}
         showCurveEffect={showResponseCurveEffect}
+        {liveRawPressure}
+        {livePressure}
+        {showRawIndicator}
+        {showEffectiveIndicator}
       />
     {/if}
   </div>

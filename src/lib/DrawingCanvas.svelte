@@ -21,6 +21,7 @@
 
   export let params;
   export let livePressure = null;
+  export let liveRawPressure = null;
 
   let info = { ...initialInfo };
 
@@ -193,6 +194,7 @@
     lastPos = getSmoothedPos(pointerToCanvasPos(event));
     const rawPressure = Number(event.pressure ?? 0);
     const processedPressure = processPressure(rawPressure);
+    liveRawPressure = rawPressure;
     livePressure = processedPressure.preCurvePressure;
     updateInfo(event, rawPressure, processedPressure);
 
@@ -204,6 +206,7 @@
   function onDrawPointerMove(event) {
     const rawPressure = Number(event.pressure ?? 0);
     const processedPressure = processPressure(rawPressure);
+    liveRawPressure = rawPressure;
     livePressure = processedPressure.preCurvePressure;
     updateInfo(event, rawPressure, processedPressure);
 
@@ -220,6 +223,7 @@
     lastPos = null;
     smoothedPressure = null;
     smoothedPos = null;
+    liveRawPressure = null;
     livePressure = null;
     resetInfo();
   }

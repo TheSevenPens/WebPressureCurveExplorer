@@ -3,6 +3,8 @@
   export let showLabels = true;
   export let showNodes = true;
   export let showNodeGuides = true;
+  export let showRawIndicator = true;
+  export let showEffectiveIndicator = true;
   export let curveActive = true;
   export let onToggle = () => {};
 </script>
@@ -43,4 +45,22 @@
     on:change={onToggle}
   >
   <span class="param-name">Show Node Guides</span>
+</label>
+
+<label class="checkbox-row">
+  <input
+    type="checkbox"
+    bind:checked={showRawIndicator}
+    on:change={onToggle}
+  >
+  <span class="param-name">Show Raw Indicator</span>
+</label>
+
+<label class="checkbox-row">
+  <input
+    type="checkbox"
+    bind:checked={showEffectiveIndicator}
+    on:change={onToggle}
+  >
+  <span class="param-name">Show Effective Indicator</span>
 </label>

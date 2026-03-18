@@ -35,12 +35,13 @@ App.svelte (root — state owner)
 
 **State managed here:**
 - `params` — the full configuration object (see [Data Model](#data-model) below)
-- `livePressure` — current pressure value while drawing (drives the live indicator on the chart)
+- `livePressure` — smoothed+curved pressure (drives the green effective pressure indicator)
+- `liveRawPressure` — raw `event.pressure` value (drives the purple raw pressure indicator)
 
 **Data flow:**
 - Passes `params` down to both `PressureChart` and `DrawingCanvas`
 - `PressureChart` binds `params` (can update it via controls)
-- `DrawingCanvas` binds `livePressure` (updates it on pointer move)
+- `DrawingCanvas` binds `livePressure` and `liveRawPressure` (updates both on pointer move)
 
 ---
 
@@ -49,7 +50,8 @@ App.svelte (root — state owner)
 
 **Inputs:**
 - `params` (bindable) — curve configuration
-- `livePressure` — position of the live pressure indicator on the curve
+- `livePressure` — effective pressure position (smoothed + curved) for the green indicator
+- `liveRawPressure` — raw pen pressure for the purple indicator
 - `defaultParams` — used by the reset button
 
 **Internal state:**
@@ -58,6 +60,10 @@ App.svelte (root — state owner)
 
 **Responsibilities:**
 - Renders the curve, grid, axis labels, control nodes, and bezier handles via Canvas 2D
+- Draws two **live pressure indicators** at the end of `drawCurveCanvas()`:
+  - **Raw pressure indicator** (purple `#8833cc`, filled) — tracks `liveRawPressure`, the unprocessed `event.pressure` value. Shows where the raw pen input sits on the curve.
+  - **Effective pressure indicator** (green `#14a050`, filled) — tracks `livePressure` (`preCurvePressure`), the fully smoothed and curved output. Shows what actually drives the brush.
+  - Each indicator renders dashed crosshair lines to both axes in its respective color.
 - Handles pointer events for dragging control points and handles (custom curve mode)
 - Provides a right-click context menu to insert/delete custom curve points
 - Exports the chart as PNG (copy to clipboard) or JPEG (save file)
@@ -179,7 +185,8 @@ App.svelte (root — state owner)
 
 **Props:**
 - `params` — curve configuration (read-only)
-- `livePressure` (bindable) — outputs current pressure to `App`
+- `livePressure` (bindable) — outputs effective pressure (`preCurvePressure`) to `App`
+- `liveRawPressure` (bindable) — outputs raw `event.pressure` to `App`
 
 **Pressure pipeline (per pointer event):**
 ```

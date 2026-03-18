@@ -39,6 +39,7 @@
 
   let params = { ...DEFAULT_PARAMS };
   let livePressure = null;
+  let liveRawPressure = null;
   function preventContextMenu(event) {
     event.preventDefault();
   }
@@ -52,6 +53,6 @@
 </script>
 
 <div id="layout">
-  <PressureChart bind:params {livePressure} defaultParams={DEFAULT_PARAMS} />
-  <DrawingCanvas bind:livePressure {params} />
+  <PressureChart bind:params {livePressure} {liveRawPressure} defaultParams={DEFAULT_PARAMS} />
+  <DrawingCanvas bind:livePressure bind:liveRawPressure {params} />
 </div>

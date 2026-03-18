@@ -11,11 +11,15 @@
   const X_AXIS_LABEL_SPACING = 2;
   const Y_AXIS_LABEL_SPACING = 7;
 
-  const RESPONSE_COLOR = '#cc6600';
+  const RESPONSE_COLOR = '#000000';
 
   export let data = null;
   export let params = null;
   export let showCurveEffect = true;
+  export let liveRawPressure = null;
+  export let livePressure = null;
+  export let showRawIndicator = true;
+  export let showEffectiveIndicator = true;
 
   let canvasEl;
   let ctx;
@@ -28,6 +32,10 @@
     data;
     params;
     showCurveEffect;
+    liveRawPressure;
+    livePressure;
+    showRawIndicator;
+    showEffectiveIndicator;
     draw();
   }
 
@@ -109,6 +117,45 @@
     ctx.fillText(showCurveEffect && params ? 'OUTPUT %' : 'LOGICAL %', 0, 0);
     ctx.restore();
 
+    function findCxForY(yNorm) {
+      for (let i = 0; i < records.length - 1; i++) {
+        const y0 = getY(records[i][1]);
+        const y1 = getY(records[i + 1][1]);
+        const minY = Math.min(y0, y1);
+        const maxY = Math.max(y0, y1);
+        if (yNorm >= minY && yNorm <= maxY) {
+          const t = (y1 !== y0) ? (yNorm - y0) / (y1 - y0) : 0;
+          const gf = records[i][0] + t * (records[i + 1][0] - records[i][0]);
+          return PAD_LEFT + (gf / maxGf) * plotW;
+        }
+      }
+      const firstY = getY(records[0][1]);
+      const lastY = getY(records[records.length - 1][1]);
+      const nearFirst = Math.abs(yNorm - firstY) <= Math.abs(yNorm - lastY);
+      return nearFirst
+        ? PAD_LEFT + (records[0][0] / maxGf) * plotW
+        : PAD_LEFT + (records[records.length - 1][0] / maxGf) * plotW;
+    }
+
+    function drawIndicator(yNorm, solidColor, fadedColor) {
+      const cx = findCxForY(yNorm);
+      const cy = PAD_TOP + plotH - yNorm * plotH;
+      ctx.strokeStyle = fadedColor;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath();
+      ctx.moveTo(PAD_LEFT, cy);
+      ctx.lineTo(cx, cy);
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx, PAD_TOP + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = solidColor;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     if (!records.length || maxGf === 0) return;
 
     const getY = (logPct) => {
@@ -138,10 +185,23 @@
       const cx = PAD_LEFT + (gf / maxGf) * plotW;
       const cy = PAD_TOP + plotH - getY(logPct) * plotH;
       ctx.beginPath();
-      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
+    if (showRawIndicator && liveRawPressure !== null) {
+      const yNorm = (showCurveEffect && params)
+        ? applyPressureCurve(liveRawPressure, params)
+        : liveRawPressure;
+      drawIndicator(yNorm, '#8833cc', 'rgba(136, 51, 204, 0.25)');
+    }
+
+    if (showEffectiveIndicator && livePressure !== null) {
+      const yNorm = (showCurveEffect && params)
+        ? applyPressureCurve(livePressure, params)
+        : livePressure;
+      drawIndicator(yNorm, '#14a050', 'rgba(20, 160, 80, 0.25)');
+    }
   }
 
   function resize() {
