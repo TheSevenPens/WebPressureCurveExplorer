@@ -8,8 +8,6 @@
   import { timestampedFileName } from './fileNames';
   import PressureChartFormat from './PressureChartFormat.svelte';
   import PressureCurveControls from './PressureCurveControls.svelte';
-  import PressureResponseChart from './PressureResponseChart.svelte';
-  import PressureResponsePanel from './PressureResponsePanel.svelte';
   import CollapsibleSection from './CollapsibleSection.svelte';
 
   const CURVE_COLOR = '#000000';
@@ -25,25 +23,14 @@
   export let livePressure = null;
   export let liveRawPressure = null;
   export let liveOutputPressure = null;
+  export let showRawIndicator = true;
+  export let showEffectiveIndicator = true;
   export let defaultParams;
-
-  let pressureResponseData = null;
-  let showResponseCurveEffect = true;
-
-  function onResponseDataChange(data) {
-    pressureResponseData = data;
-  }
-
-  function onResponseShowCurveEffectChange(value) {
-    showResponseCurveEffect = value;
-  }
 
   let showGrid = true;
   let showLabels = true;
   let showNodes = true;
   let showNodeGuides = true;
-  let showRawIndicator = true;
-  let showEffectiveIndicator = true;
 
   let menuCopyOpen = false;
   let menuSaveOpen = false;
@@ -1034,6 +1021,11 @@
         <!-- A popover rather than a menu: it holds checkboxes, not commands,
              so it carries no menu role and swallows clicks to stay open while
              several options are toggled. -->
+        <!-- The handler only stops the document listener from closing the
+             panel; the div is not a control, so a keyboard equivalent would
+             have nothing to do. The checkboxes inside are focusable. -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="dropdown-panel" class:open={menuFormatOpen} on:click|stopPropagation>
           <PressureChartFormat
             bind:showGrid
@@ -1049,24 +1041,6 @@
       </div>
     </div>
 
-    <CollapsibleSection title="Pressure Response">
-      <PressureResponsePanel
-        onDataChange={onResponseDataChange}
-        onShowCurveEffectChange={onResponseShowCurveEffectChange}
-      />
-      {#if pressureResponseData}
-        <PressureResponseChart
-          data={pressureResponseData}
-          {params}
-          showCurveEffect={showResponseCurveEffect}
-          {liveRawPressure}
-          {livePressure}
-          {liveOutputPressure}
-          {showRawIndicator}
-          {showEffectiveIndicator}
-        />
-      {/if}
-    </CollapsibleSection>
   </div>
 
   <PressureCurveControls

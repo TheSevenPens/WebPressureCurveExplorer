@@ -4,11 +4,13 @@ WebPressureExplorer is a browser-based tool for exploring, configuring, and test
 
 ## What it does
 
-The app provides two side-by-side panels:
+The app has a fixed left column and a right pane that switches between two views:
 
 - **Pressure Curve Editor** (left) — An interactive chart where users select a curve type (passthrough, flat, basic, extended, sigmoid, or bezier), adjust parameters via sliders and draggable control nodes, and see the resulting pressure mapping function in real time.
 
-- **Drawing Canvas** (right) — A split drawing surface with two halves. The top half ("Pressure processing: ON") applies the full pressure pipeline (smoothing + curve). The bottom half ("Pressure processing: OFF") uses raw unprocessed pen pressure. Drawing in either half mirrors the stroke to the other, making it easy to compare the effect of pressure processing side by side.
+- **View pane** (right) — Two stacked toolbars over the active view. The first reports live pen data and is the same in both views; the second holds the view switcher and whichever controls that view needs. The pane switches between:
+  - **Canvas** — A split drawing surface with two halves. The top half ("Pressure processing: ON") applies the full pressure pipeline (smoothing + curve). The bottom half ("Pressure processing: OFF") uses raw unprocessed pen pressure. Drawing in either half mirrors the stroke to the other, making it easy to compare the effect of pressure processing side by side.
+  - **Pressure Response** — The pen hardware response chart at full pane size. It captures pen pressure without drawing, so you can press the pen and watch the live indicators move along your hardware's actual force curve.
 
 ## Key features
 
@@ -20,7 +22,7 @@ The app provides two side-by-side panels:
 - **On/off status in card titles** — the Curve and Smoothing cards report whether that stage is actually changing the pressure, so a collapsed card still tells you. A curve that is mathematically neutral reads "off" even when a curve type is selected
 - **Min approach modes** (clamp vs cut) controlling how the curve behaves below the input minimum
 - **Live pressure indicators** on the chart showing raw (purple) and effective (green) pressure positions in real time
-- **Pressure response data** — load pen hardware measurement data (physical grams-force vs logical pressure %) from bundled samples or uploaded JSON files, with optional curve overlay
+- **Pressure response data** — load pen hardware measurement data (physical grams-force vs logical pressure %) from bundled samples or uploaded JSON files, with optional curve overlay, shown full-pane in Pressure Response view
 - **Collapsible controls** — a single toolbar button hides both left panels to maximize drawing area; strokes survive the toggle
 - **Export** — copy charts and drawing canvases to clipboard as PNG or save as image files, with a local-time stamp in every saved filename
 - **Split canvas comparison** — draw once, see the stroke rendered with and without pressure processing simultaneously
@@ -54,17 +56,20 @@ src/
   main.js                       Entry point
   app.css                       Global styles
   lib/
+    ViewPanel.svelte            Right pane: toolbars + view switching
+    PenDataToolbar.svelte       Toolbar 1: live pen readouts
+    CanvasControls.svelte       Toolbar 2: canvas-mode controls
+    ResponseControls.svelte     Toolbar 2: response-mode controls
+    PressureResponseView.svelte Response view body
     PressureChart.svelte        Curve chart + interaction + export
     PressureChartFormat.svelte  Display toggle checkboxes
     PressureCurveControls.svelte  DetailsPanel: curve type selector + parameter sliders
     PressureResponseChart.svelte  Pen hardware response data chart
-    PressureResponsePanel.svelte  Load/select response data
     PressureSmoothingControls.svelte  Pressure smoothing amount
     SmoothingOrderControls.svelte  Smoothing order radios
     CollapsibleSection.svelte   Reusable collapsible section wrapper
     NamedSlider.svelte          Reusable slider with edit mode + context menu
     DrawingCanvas.svelte        Split pressure-sensitive drawing surface
-    DrawingCanvasHeader.svelte  Toolbar with live pointer info + brush controls
     curveMath.js                Pure math: curve evaluation + bezier
     curveTypes.js               CURVE_TYPE enum constants
     uiConstants.js              UI enums (smoothing order, min approach, handle mode, color mode, pressure control)
@@ -73,6 +78,7 @@ src/
     canvasUtils.js              Shared canvas drawing utilities
     emaConstants.js             Shared EMA smoothing constants
     fileNames.js                Timestamped export filename helper
+    pressurePipeline.js         Shared smoothing state + pen info builder
 sample-pressure-response/       Bundled pen hardware measurement JSON files
 docs/                           Documentation
 ```

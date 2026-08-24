@@ -3,6 +3,11 @@ export const SMOOTHING_ORDER = Object.freeze({
   CURVE_THEN_SMOOTH: 'curve-then-smooth',
 });
 
+export const VIEW_MODE = Object.freeze({
+  CANVAS: 'canvas',
+  RESPONSE: 'response',
+});
+
 export const SMOOTHING_TYPE = Object.freeze({
   PASSTHROUGH: 'passthrough',
   EMA: 'ema',

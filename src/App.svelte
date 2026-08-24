@@ -1,9 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import PressureChart from './lib/PressureChart.svelte';
-  import DrawingCanvas from './lib/DrawingCanvas.svelte';
+  import ViewPanel from './lib/ViewPanel.svelte';
   import { CURVE_TYPE } from './lib/curveTypes';
-  import { SMOOTHING_ORDER, SMOOTHING_TYPE, MIN_APPROACH, HANDLE_MODE } from './lib/uiConstants';
+  import { SMOOTHING_ORDER, SMOOTHING_TYPE, MIN_APPROACH, HANDLE_MODE, VIEW_MODE } from './lib/uiConstants';
 
   const DEFAULT_PARAMS = {
     smoothingType: SMOOTHING_TYPE.EMA,
@@ -46,6 +46,13 @@
   let liveOutputPressure = null;
   let showDriverWarning = true;
   let leftPanelsCollapsed = false;
+  let viewMode = VIEW_MODE.CANVAS;
+  // Owned here because the loader lives in the right pane's toolbar while the
+  // curve panel needs the same data for its indicators.
+  let pressureResponseData = null;
+  let showResponseCurveEffect = true;
+  let showRawIndicator = true;
+  let showEffectiveIndicator = true;
   function preventContextMenu(event) {
     event.preventDefault();
   }
@@ -65,13 +72,28 @@
   </div>
 {/if}
 <div id="layout" class:left-collapsed={leftPanelsCollapsed}>
-  <PressureChart bind:params {livePressure} {liveRawPressure} {liveOutputPressure} defaultParams={DEFAULT_PARAMS} />
-  <DrawingCanvas
+  <PressureChart
+    bind:params
+    bind:showRawIndicator
+    bind:showEffectiveIndicator
+    {livePressure}
+    {liveRawPressure}
+    {liveOutputPressure}
+    defaultParams={DEFAULT_PARAMS}
+  />
+  <ViewPanel
     bind:livePressure
     bind:liveRawPressure
     bind:liveOutputPressure
+    bind:viewMode
     {params}
     {leftPanelsCollapsed}
     onToggleLeftPanels={() => leftPanelsCollapsed = !leftPanelsCollapsed}
+    {showRawIndicator}
+    {showEffectiveIndicator}
+    responseData={pressureResponseData}
+    {showResponseCurveEffect}
+    onResponseDataChange={(data) => pressureResponseData = data}
+    onResponseShowCurveEffectChange={(value) => showResponseCurveEffect = value}
   />
 </div>

@@ -14,12 +14,17 @@
   export let liveOutputPressure = null;
   export let showRawIndicator = true;
   export let showEffectiveIndicator = true;
+  // When true the chart fills its container in both dimensions instead of
+  // taking its height from a fixed aspect ratio. Used by the full-pane view.
+  export let fill = false;
 
   let canvasEl;
   let ctx;
   let containerEl;
+  let canvasHostEl;
   let dpr = 1;
-  let lastSize = 0;
+  let lastWidth = 0;
+  let lastHeight = 0;
   let lastDpr = 0;
   let isReady = false;
 
@@ -162,20 +167,26 @@
     // skip so the cached size survives and expanding restores it as-is.
     if (containerEl.clientWidth === 0) return;
 
-    const size = Math.max(120, containerEl.clientWidth - 24);
+    // In fill mode the canvas host is a flex child that already owns the
+    // leftover height, so measure it rather than deriving from an aspect ratio.
+    const width = Math.max(120, (fill ? canvasHostEl.clientWidth : containerEl.clientWidth - 24));
+    const height = fill
+      ? Math.max(120, canvasHostEl.clientHeight)
+      : Math.round(width * 0.6);
     dpr = window.devicePixelRatio || 1;
 
-    if (size === lastSize && dpr === lastDpr && canvasEl.width > 0) {
+    if (width === lastWidth && height === lastHeight && dpr === lastDpr && canvasEl.width > 0) {
       draw();
       return;
     }
 
-    lastSize = size;
+    lastWidth = width;
+    lastHeight = height;
     lastDpr = dpr;
-    canvasEl.style.width = `${size}px`;
-    canvasEl.style.height = `${Math.round(size * 0.6)}px`;
-    canvasEl.width = Math.round(size * dpr);
-    canvasEl.height = Math.round(size * 0.6 * dpr);
+    canvasEl.style.width = `${width}px`;
+    canvasEl.style.height = `${height}px`;
+    canvasEl.width = Math.round(width * dpr);
+    canvasEl.height = Math.round(height * dpr);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
@@ -186,25 +197,46 @@
     ctx = canvasEl.getContext('2d');
     const observer = new ResizeObserver(resize);
     observer.observe(containerEl);
+    if (canvasHostEl) observer.observe(canvasHostEl);
     resize();
     isReady = true;
     return () => observer.disconnect();
   });
 </script>
 
-<div class="response-chart-wrap" bind:this={containerEl}>
+<div class="response-chart-wrap" class:fill bind:this={containerEl}>
   {#if data}
     <div class="response-chart-title">
       <span class="response-chart-id">{data.inventoryid}</span>
       <span class="response-chart-meta">{data.brand} {data.pen} · {data.tablet} · {data.date}</span>
     </div>
   {/if}
-  <canvas bind:this={canvasEl}></canvas>
+  <div class="response-canvas-host" bind:this={canvasHostEl}>
+    <canvas bind:this={canvasEl}></canvas>
+  </div>
 </div>
 
 <style>
   .response-chart-wrap {
     margin-top: 8px;
+  }
+
+  .response-canvas-host {
+    min-width: 0;
+  }
+
+  .response-chart-wrap.fill .response-canvas-host {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .response-chart-wrap.fill {
+    margin-top: 0;
+    padding: 8px 12px 12px;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .response-chart-title {

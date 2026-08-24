@@ -7,7 +7,6 @@ Ideas, known issues, and potential directions for WebPressureExplorer.
 - **Context menu positioning** — The bezier right-click context menu uses `clientX`/`clientY` and can overflow off-screen on small viewports.
 - **No dark mode** — Colors are hardcoded for a light theme.
 - **Accessibility warnings in the build** — The Svelte compiler flags click handlers on non-interactive elements in `PressureCurveControls.svelte` (the curve type row) and `NamedSlider.svelte` (the click-to-edit value and the slider context menu target). Each needs either a keyboard handler or a real interactive element.
-- **Dead CSS** — `.response-toggle` and `.response-toggle:hover` in `PressureResponsePanel.svelte` are unused; the compiler warns on every build.
 
 ## Feature suggestions
 
