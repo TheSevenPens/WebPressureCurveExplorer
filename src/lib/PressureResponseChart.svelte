@@ -154,6 +154,10 @@
   function resize() {
     if (!canvasEl || !containerEl || !ctx) return;
 
+    // While the curve panel is collapsed the container has no layout box;
+    // skip so the cached size survives and expanding restores it as-is.
+    if (containerEl.clientWidth === 0) return;
+
     const size = Math.max(120, containerEl.clientWidth - 24);
     dpr = window.devicePixelRatio || 1;
 

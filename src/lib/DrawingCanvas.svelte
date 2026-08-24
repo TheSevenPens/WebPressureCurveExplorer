@@ -43,10 +43,10 @@
   let rawCtx;
   let resizeObserver;
   let resizeRafId = 0;
-  let lastBackingWidth = 0;
-  let lastBackingHeight = 0;
   // Exact device-pixel content box per canvas, reported by ResizeObserver.
   const devicePixelBoxes = new WeakMap();
+  // Backing size last applied to each canvas, so a change to either one is seen.
+  const appliedBacking = new WeakMap();
   let isDrawing = false;
   let lastPos = null;
   let smoothedPressure = null;
@@ -148,19 +148,23 @@
   function resizeDrawCanvases() {
     if (!processedCanvasEl || !processedCtx || !rawCanvasEl || !rawCtx || !drawPanelEl) return;
 
-    const { width: backingWidth, height: backingHeight } = backingSizeFor(processedCanvasEl);
-
-    if (backingWidth === lastBackingWidth && backingHeight === lastBackingHeight && processedCanvasEl.width > 0) {
-      return;
-    }
-
-    lastBackingWidth = backingWidth;
-    lastBackingHeight = backingHeight;
-
     // Draw in CSS pixels while the backing store holds one texel per screen
     // pixel, so strokes are rasterised at full display resolution instead of
     // being upscaled by the compositor.
+    //
+    // Each canvas is measured and sized from its own box. The two are
+    // equal-flex so they normally match, but their device-pixel boxes can
+    // still differ by a pixel — flex rounding, or the top label wrapping
+    // because of its extra checkbox — and stamping one canvas's size onto the
+    // other would leave that one with a non-dpr scale, undoing the HiDPI work.
     for (const [ctx, canvasEl] of [[processedCtx, processedCanvasEl], [rawCtx, rawCanvasEl]]) {
+      const { width: backingWidth, height: backingHeight } = backingSizeFor(canvasEl);
+      const applied = appliedBacking.get(canvasEl);
+
+      if (applied && applied.width === backingWidth && applied.height === backingHeight) continue;
+
+      appliedBacking.set(canvasEl, { width: backingWidth, height: backingHeight });
+
       const rect = canvasEl.getBoundingClientRect();
       const previous = snapshotCanvas(canvasEl);
 

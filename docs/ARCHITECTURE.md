@@ -171,9 +171,9 @@ Components update params via `patchParams({ key: value })` which spreads into a 
   |  State: pressureResponse   |  |  (pointer input)      |
   |         showCurveEffect    |  |                       |
   |                            |  |  Raw pressure         |
-  |  +----------------+        |  |    v EMA smooth       |
-  |  |ChartFormat     |        |  |    v applyPressure    |
-  |  +----------------+        |  |      Curve()          |
+  |  +----------------+        |  |    v curve + EMA, in  |
+  |  |ChartFormat     |        |  |      smoothingOrder   |
+  |  +----------------+        |  |      (see below)      |
   |  +----------------+        |  |    v brush size       |
   |  |ResponseChart   |<-data--+  |                       |
   |  |  params        |<-parm--+  |  livePressure ------> |
