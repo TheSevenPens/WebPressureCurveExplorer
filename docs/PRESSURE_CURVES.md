@@ -12,7 +12,9 @@ The output drives brush size, opacity, or other pressure-dependent parameters in
 
 ## Common settings
 
-These settings apply to **basic** and **sigmoid** curve types:
+These settings apply to the **extended** and **sigmoid** curve types. The
+**basic** curve uses the same math but exposes only CurveAmount, pinning the
+input and output ranges to 0-1 and the min approach to clamp:
 
 | Setting | Range | Description |
 |---|---|---|
@@ -33,7 +35,7 @@ Controls the curve segment from x=0 to x=InputMinimum:
 
 ## Curve types
 
-### Null-effect
+### Passthrough
 
 **Pass-through.** Output equals input: `f(x) = x`.
 
@@ -49,9 +51,12 @@ Draws a straight diagonal line from (0,0) to (1,1). No settings apply. Useful as
 
 Draws a horizontal line. Every input pressure produces the same output.
 
-### Basic
+### Basic and Extended
 
-**Power curve.** The core curve shape is a power function applied to the normalized input.
+**Power curve.** The core curve shape is a power function applied to the normalized input. Both types run identical math; they differ only in the controls the UI exposes.
+
+- **Basic** shows only the CurveAmount slider. Selecting it resets InputMinimum/OutputMinimum to 0, InputMaximum/OutputMaximum to 1, and Min Approach to clamp, so the curve always spans the full range and the chart shows no draggable nodes.
+- **Extended** additionally exposes the input/output range via draggable chart nodes, a read-only node values table, and the Min Approach radio buttons.
 
 #### Math
 
@@ -88,11 +93,11 @@ Draws a horizontal line. Every input pressure produces the same output.
 
 ### Sigmoid
 
-**S-curve.** Uses a logistic function for a smooth S-shaped transition. Compresses both the light and heavy ends while expanding the midrange.
+**S-curve.** Exposes the same range and Min Approach controls as Extended. Uses a logistic function for a smooth S-shaped transition. Compresses both the light and heavy ends while expanding the midrange.
 
 #### Math
 
-1. **Normalize** the input (same as basic).
+1. **Normalize** the input (same as basic/extended).
 
 2. **Compute steepness:**
    ```
@@ -109,12 +114,12 @@ Draws a horizontal line. Every input pressure produces the same output.
    ```
    The normalization by `s0` and `s1` ensures the output maps cleanly to [0, 1].
 
-4. **Scale to output range** (same as basic).
+4. **Scale to output range** (same as basic/extended).
 
 #### Behavior
 - **softness > 0**: Standard S-curve. Light and heavy pressure are compressed; midrange is expanded. The higher the softness, the steeper the S.
 - **softness < 0**: Inverted S-curve. Midrange is compressed; extremes are expanded.
-- **softness = 0**: Linear (same as basic at softness=0).
+- **softness = 0**: Linear (same as basic/extended at softness=0).
 
 ### Bezier
 
@@ -187,8 +192,13 @@ Raw pen pressure (event.pressure, 0-1)
 [EMA smoothing]  <-- if smoothingOrder = "curve-then-smooth"
   |
   v
-Output pressure (0-1) --> brush size, opacity, etc.
+Output pressure (0-1) --> brush size or opacity
 ```
+
+The order defaults to curve-then-smooth.
+
+Only pressure is smoothed. Pointer coordinates are used exactly as the pointer
+event delivers them.
 
 EMA (Exponential Moving Average) smoothing:
 ```

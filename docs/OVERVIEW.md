@@ -16,11 +16,13 @@ The app provides two side-by-side panels:
 - **Bezier presets** — built-in preset shapes (Linear, Soft, Firm, S-Curve, Light Touch, Heavy, Step) for quick bezier curve setup
 - **Draggable control nodes** on the chart for extended/sigmoid curves to set input/output ranges visually
 - **Full bezier editor** with adjustable handles, mirrored/broken handle modes, and right-click context menu
-- **EMA smoothing** for both pressure and cursor position, with configurable application order (smooth-then-curve or curve-then-smooth)
+- **EMA smoothing** for pressure, with configurable application order (curve-then-smooth by default, or smooth-then-curve)
+- **On/off status in card titles** — the Curve and Smoothing cards report whether that stage is actually changing the pressure, so a collapsed card still tells you. A curve that is mathematically neutral reads "off" even when a curve type is selected
 - **Min approach modes** (clamp vs cut) controlling how the curve behaves below the input minimum
 - **Live pressure indicators** on the chart showing raw (purple) and effective (green) pressure positions in real time
 - **Pressure response data** — load pen hardware measurement data (physical grams-force vs logical pressure %) from bundled samples or uploaded JSON files, with optional curve overlay
-- **Export** — copy charts and drawing canvases to clipboard as PNG or save as image files
+- **Collapsible controls** — a single toolbar button hides both left panels to maximize drawing area; strokes survive the toggle
+- **Export** — copy charts and drawing canvases to clipboard as PNG or save as image files, with a local-time stamp in every saved filename
 - **Split canvas comparison** — draw once, see the stroke rendered with and without pressure processing simultaneously
 - **Brush controls** — adjustable brush size (1-500px), stroke color mode (black or random), pressure controls (size or opacity)
 - **User presets** — save, load (with confirmation), and delete named parameter configurations via localStorage
@@ -32,7 +34,7 @@ The app provides two side-by-side panels:
 - **Svelte 5** — component framework
 - **Vite 6** — build tool and dev server
 - **Canvas 2D API** — all chart and drawing rendering
-- **Google Sans** — primary font (Segoe UI fallback)
+- **Inter** — primary font, loaded from Google Fonts (Segoe UI fallback)
 - **No external UI libraries** — pure CSS styling, zero runtime dependencies
 
 ## Running the app
@@ -57,17 +59,20 @@ src/
     PressureCurveControls.svelte  DetailsPanel: curve type selector + parameter sliders
     PressureResponseChart.svelte  Pen hardware response data chart
     PressureResponsePanel.svelte  Load/select response data
-    PressureSmoothingControls.svelte  Pressure smoothing + order controls
-    PositionControls.svelte     Position smoothing slider
+    PressureSmoothingControls.svelte  Pressure smoothing amount
+    SmoothingOrderControls.svelte  Smoothing order radios
+    CollapsibleSection.svelte   Reusable collapsible section wrapper
     NamedSlider.svelte          Reusable slider with edit mode + context menu
     DrawingCanvas.svelte        Split pressure-sensitive drawing surface
     DrawingCanvasHeader.svelte  Toolbar with live pointer info + brush controls
     curveMath.js                Pure math: curve evaluation + bezier
     curveTypes.js               CURVE_TYPE enum constants
+    uiConstants.js              UI enums (smoothing order, min approach, handle mode, color mode, pressure control)
     bezierPresets.js            Built-in bezier curve preset definitions
     canvasConstants.js          Shared canvas padding/spacing constants
     canvasUtils.js              Shared canvas drawing utilities
     emaConstants.js             Shared EMA smoothing constants
+    fileNames.js                Timestamped export filename helper
 sample-pressure-response/       Bundled pen hardware measurement JSON files
 docs/                           Documentation
 ```

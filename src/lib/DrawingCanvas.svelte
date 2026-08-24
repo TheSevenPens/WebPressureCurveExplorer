@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { applyPressureCurve } from './curveMath';
   import { SMOOTHING_ORDER, COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
+  import { timestampedFileName } from './fileNames';
   import DrawingCanvasHeader from './DrawingCanvasHeader.svelte';
 
   const CANVAS_BG = '#f5f5f0';
@@ -19,7 +20,7 @@
     pressureCurved: '---',
     pressureSmoothed: '---',
     pressureOutput: '---',
-    smoothingOrder: SMOOTHING_ORDER.SMOOTH_THEN_CURVE,
+    smoothingOrder: SMOOTHING_ORDER.CURVE_THEN_SMOOTH,
     tiltX: '---',
     tiltY: '---',
     azimuth: '---',
@@ -29,6 +30,8 @@
   export let params;
   export let livePressure = null;
   export let liveRawPressure = null;
+  export let leftPanelsCollapsed = false;
+  export let onToggleLeftPanels = () => {};
 
   let info = { ...initialInfo };
 
@@ -40,12 +43,13 @@
   let rawCtx;
   let resizeObserver;
   let resizeRafId = 0;
-  let lastDeviceWidth = 0;
-  let lastDeviceHeight = 0;
+  // Exact device-pixel content box per canvas, reported by ResizeObserver.
+  const devicePixelBoxes = new WeakMap();
+  // Backing size last applied to each canvas, so a change to either one is seen.
+  const appliedBacking = new WeakMap();
   let isDrawing = false;
   let lastPos = null;
   let smoothedPressure = null;
-  let smoothedPos = null;
   let drawZeroPressure = false;
   let brushSize = 40;
   let colorMode = COLOR_MODE.BLACK;
@@ -85,7 +89,7 @@
   }
 
   function processPressure(rawPressure) {
-    const order = params.smoothingOrder ?? SMOOTHING_ORDER.SMOOTH_THEN_CURVE;
+    const order = params.smoothingOrder ?? SMOOTHING_ORDER.CURVE_THEN_SMOOTH;
 
     if (order === SMOOTHING_ORDER.CURVE_THEN_SMOOTH) {
       const curved = applyPressureCurve(rawPressure, params);
@@ -112,33 +116,10 @@
 
   function pointerToCanvasPos(pointerEvent, canvasEl) {
     const rect = canvasEl.getBoundingClientRect();
-    const scaleX = rect.width > 0 ? canvasEl.width / rect.width : 1;
-    const scaleY = rect.height > 0 ? canvasEl.height / rect.height : 1;
     return {
-      x: (pointerEvent.clientX - rect.left) * scaleX,
-      y: (pointerEvent.clientY - rect.top) * scaleY,
+      x: pointerEvent.clientX - rect.left,
+      y: pointerEvent.clientY - rect.top,
     };
-  }
-
-  function getSmoothedPos(rawPos) {
-    const smoothing = Math.min(0.99, Math.max(0, Number(params.positionEmaSmoothing ?? 0)));
-
-    if (smoothing <= 0) {
-      smoothedPos = rawPos;
-      return rawPos;
-    }
-
-    if (smoothedPos === null) {
-      smoothedPos = rawPos;
-      return rawPos;
-    }
-
-    const alpha = 1 - smoothing;
-    smoothedPos = {
-      x: smoothedPos.x + alpha * (rawPos.x - smoothedPos.x),
-      y: smoothedPos.y + alpha * (rawPos.y - smoothedPos.y),
-    };
-    return smoothedPos;
   }
 
   function scheduleResize() {
@@ -149,34 +130,79 @@
     });
   }
 
+  // Size of the canvas backing store in real screen pixels. ResizeObserver's
+  // device-pixel content box is exact; the getBoundingClientRect fallback is
+  // for browsers that do not report it.
+  function backingSizeFor(canvasEl) {
+    const exact = devicePixelBoxes.get(canvasEl);
+    if (exact && exact.width > 0 && exact.height > 0) return exact;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvasEl.getBoundingClientRect();
+    return {
+      width: Math.max(1, Math.round(rect.width * dpr)),
+      height: Math.max(1, Math.round(rect.height * dpr)),
+    };
+  }
+
   function resizeDrawCanvases() {
-    if (!processedCanvasEl || !processedCtx || !rawCanvasEl || !rawCtx || !drawPanelEl || !toolbarEl) return;
+    if (!processedCanvasEl || !processedCtx || !rawCanvasEl || !rawCtx || !drawPanelEl) return;
 
-    const cssWidth = Math.max(1, drawPanelEl.clientWidth);
-    const canvasHeight = Math.max(1, processedCanvasEl.clientHeight);
+    // Draw in CSS pixels while the backing store holds one texel per screen
+    // pixel, so strokes are rasterised at full display resolution instead of
+    // being upscaled by the compositor.
+    //
+    // Each canvas is measured and sized from its own box. The two are
+    // equal-flex so they normally match, but their device-pixel boxes can
+    // still differ by a pixel — flex rounding, or the top label wrapping
+    // because of its extra checkbox — and stamping one canvas's size onto the
+    // other would leave that one with a non-dpr scale, undoing the HiDPI work.
+    for (const [ctx, canvasEl] of [[processedCtx, processedCanvasEl], [rawCtx, rawCanvasEl]]) {
+      const { width: backingWidth, height: backingHeight } = backingSizeFor(canvasEl);
+      const applied = appliedBacking.get(canvasEl);
 
-    if (cssWidth === lastDeviceWidth && canvasHeight === lastDeviceHeight) {
-      return;
+      if (applied && applied.width === backingWidth && applied.height === backingHeight) continue;
+
+      appliedBacking.set(canvasEl, { width: backingWidth, height: backingHeight });
+
+      const rect = canvasEl.getBoundingClientRect();
+      const previous = snapshotCanvas(canvasEl);
+
+      canvasEl.width = backingWidth;
+      canvasEl.height = backingHeight;
+
+      // Setting width/height resets the context, so repaint the background and
+      // restore existing strokes at 1:1 before reapplying the scale transform.
+      ctx.fillStyle = CANVAS_BG;
+      ctx.fillRect(0, 0, backingWidth, backingHeight);
+      if (previous) ctx.drawImage(previous, 0, 0);
+
+      ctx.setTransform(
+        rect.width > 0 ? backingWidth / rect.width : 1, 0,
+        0, rect.height > 0 ? backingHeight / rect.height : 1,
+        0, 0,
+      );
     }
+  }
 
-    lastDeviceWidth = cssWidth;
-    lastDeviceHeight = canvasHeight;
-
-    for (const canvasEl of [processedCanvasEl, rawCanvasEl]) {
-      canvasEl.width = cssWidth;
-      canvasEl.height = canvasHeight;
-    }
-
-    processedCtx.setTransform(1, 0, 0, 1, 0, 0);
-    rawCtx.setTransform(1, 0, 0, 1, 0, 0);
-    clearDrawCanvases();
+  // Copy of the current backing store, used to carry strokes across a resize.
+  function snapshotCanvas(canvasEl) {
+    if (canvasEl.width === 0 || canvasEl.height === 0) return null;
+    const copy = document.createElement('canvas');
+    copy.width = canvasEl.width;
+    copy.height = canvasEl.height;
+    copy.getContext('2d').drawImage(canvasEl, 0, 0);
+    return copy;
   }
 
   function clearDrawCanvases() {
     for (const [ctx, canvasEl] of [[processedCtx, processedCanvasEl], [rawCtx, rawCanvasEl]]) {
       if (!ctx || !canvasEl) continue;
+      const transform = ctx.getTransform();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = CANVAS_BG;
       ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+      ctx.setTransform(transform);
     }
   }
 
@@ -217,7 +243,7 @@
   function handlePointerDown(event, sourceCanvas) {
     pickStrokeColor();
     isDrawing = true;
-    lastPos = getSmoothedPos(pointerToCanvasPos(event, sourceCanvas));
+    lastPos = pointerToCanvasPos(event, sourceCanvas);
     const rawPressure = Number(event.pressure ?? 0);
     const processedPressure = processPressure(rawPressure);
     liveRawPressure = rawPressure;
@@ -238,7 +264,7 @@
 
     if (!isDrawing) return;
 
-    const currentPos = getSmoothedPos(pointerToCanvasPos(event, sourceCanvas));
+    const currentPos = pointerToCanvasPos(event, sourceCanvas);
 
     if (drawZeroPressure || processedPressure.outputPressure > 0) {
       const pSize = pressureControls === PRESSURE_CONTROL.OPACITY ? brushSize : Math.max(1, processedPressure.outputPressure * brushSize);
@@ -257,7 +283,6 @@
     isDrawing = false;
     lastPos = null;
     smoothedPressure = null;
-    smoothedPos = null;
     liveRawPressure = null;
     livePressure = null;
     resetInfo();
@@ -274,9 +299,9 @@
     }, 'image/png');
   }
 
-  function saveCanvas(canvasEl, filename) {
+  function saveCanvas(canvasEl, baseName) {
     const link = document.createElement('a');
-    link.download = filename;
+    link.download = timestampedFileName(baseName, 'png');
     link.href = canvasEl.toDataURL('image/png');
     link.click();
   }
@@ -293,8 +318,23 @@
     rawCtx = rawCanvasEl.getContext('2d');
     scheduleResize();
 
-    resizeObserver = new ResizeObserver(scheduleResize);
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const box = entry.devicePixelContentBoxSize?.[0];
+        if (box) {
+          devicePixelBoxes.set(entry.target, { width: box.inlineSize, height: box.blockSize });
+        }
+      }
+      scheduleResize();
+    });
     resizeObserver.observe(drawPanelEl);
+    for (const canvasEl of [processedCanvasEl, rawCanvasEl]) {
+      try {
+        resizeObserver.observe(canvasEl, { box: 'device-pixel-content-box' });
+      } catch {
+        resizeObserver.observe(canvasEl);
+      }
+    }
 
     window.addEventListener('resize', scheduleResize);
     document.addEventListener('keydown', onKeyDown);
@@ -311,7 +351,7 @@
 </script>
 
 <div id="draw-panel" bind:this={drawPanelEl}>
-  <DrawingCanvasHeader bind:el={toolbarEl} {info} onClear={clearDrawCanvases} {brushSize} onBrushSizeChange={(v) => brushSize = v} {colorMode} onColorModeChange={(v) => colorMode = v} {pressureControls} onPressureControlsChange={(v) => pressureControls = v} />
+  <DrawingCanvasHeader bind:el={toolbarEl} {info} onClear={clearDrawCanvases} {brushSize} onBrushSizeChange={(v) => brushSize = v} {colorMode} onColorModeChange={(v) => colorMode = v} {pressureControls} onPressureControlsChange={(v) => pressureControls = v} {leftPanelsCollapsed} {onToggleLeftPanels} />
 
   <div class="split-canvas-wrap">
     <div class="split-canvas-label">
@@ -322,7 +362,7 @@
       </label>
       <span class="canvas-export-buttons">
         <button type="button" class="canvas-export-btn" on:click={() => copyCanvas(processedCanvasEl)}>Copy</button>
-        <button type="button" class="canvas-export-btn" on:click={() => saveCanvas(processedCanvasEl, 'processed.png')}>Save</button>
+        <button type="button" class="canvas-export-btn" on:click={() => saveCanvas(processedCanvasEl, 'processed')}>Save</button>
       </span>
     </div>
     <canvas
@@ -340,7 +380,7 @@
       <span>Pressure processing: OFF</span>
       <span class="canvas-export-buttons">
         <button type="button" class="canvas-export-btn" on:click={() => copyCanvas(rawCanvasEl)}>Copy</button>
-        <button type="button" class="canvas-export-btn" on:click={() => saveCanvas(rawCanvasEl, 'unprocessed.png')}>Save</button>
+        <button type="button" class="canvas-export-btn" on:click={() => saveCanvas(rawCanvasEl, 'unprocessed')}>Save</button>
       </span>
     </div>
     <canvas

@@ -10,6 +10,8 @@
   export let onColorModeChange = () => {};
   export let pressureControls = PRESSURE_CONTROL.SIZE;
   export let onPressureControlsChange = () => {};
+  export let leftPanelsCollapsed = false;
+  export let onToggleLeftPanels = () => {};
 </script>
 
 <div id="toolbar" bind:this={el}>
@@ -38,6 +40,13 @@
     <span class="info-item">Altitude: <span class="val mono">{info.altitude}</span></span>
   </div>
   <div class="toolbar-row toolbar-controls">
+    <button
+      id="btn-toggle-panels"
+      type="button"
+      aria-pressed={leftPanelsCollapsed}
+      title={leftPanelsCollapsed ? 'Show the curve and controls panels' : 'Hide the curve and controls panels for maximum canvas area'}
+      on:click={onToggleLeftPanels}
+    >{leftPanelsCollapsed ? '» Show controls' : '« Hide controls'}</button>
     <button id="btn-clear" on:click={onClear}>Clear</button>
     <span class="info-item">
       Color:

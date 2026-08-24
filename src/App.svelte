@@ -7,8 +7,7 @@
 
   const DEFAULT_PARAMS = {
     emaSmoothing: 0,
-    positionEmaSmoothing: 0,
-    smoothingOrder: SMOOTHING_ORDER.SMOOTH_THEN_CURVE,
+    smoothingOrder: SMOOTHING_ORDER.CURVE_THEN_SMOOTH,
     softness: 0.0,
     inputMinimum: 0,
     inputMaximum: 1,
@@ -44,6 +43,7 @@
   let livePressure = null;
   let liveRawPressure = null;
   let showDriverWarning = true;
+  let leftPanelsCollapsed = false;
   function preventContextMenu(event) {
     event.preventDefault();
   }
@@ -62,7 +62,13 @@
     <button type="button" class="driver-warning-dismiss" on:click={() => showDriverWarning = false}>✕</button>
   </div>
 {/if}
-<div id="layout">
+<div id="layout" class:left-collapsed={leftPanelsCollapsed}>
   <PressureChart bind:params {livePressure} {liveRawPressure} defaultParams={DEFAULT_PARAMS} />
-  <DrawingCanvas bind:livePressure bind:liveRawPressure {params} />
+  <DrawingCanvas
+    bind:livePressure
+    bind:liveRawPressure
+    {params}
+    {leftPanelsCollapsed}
+    onToggleLeftPanels={() => leftPanelsCollapsed = !leftPanelsCollapsed}
+  />
 </div>

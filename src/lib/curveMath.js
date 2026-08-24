@@ -240,3 +240,18 @@ export function applyPressureCurve(x, params) {
 
   return baseOutput;
 }
+
+const IDENTITY_SAMPLES = 33;
+const IDENTITY_EPSILON = 1e-6;
+
+// True when the configured curve maps every input to itself, i.e. it has no
+// audible effect on pressure. Sampling the real transform rather than checking
+// curveType catches the neutral cases too: a basic/extended/sigmoid curve at
+// CurveAmount 0 with full ranges, or a bezier whose points sit on the diagonal.
+export function isIdentityCurve(params) {
+  for (let i = 0; i < IDENTITY_SAMPLES; i++) {
+    const x = i / (IDENTITY_SAMPLES - 1);
+    if (Math.abs(applyPressureCurve(x, params) - x) > IDENTITY_EPSILON) return false;
+  }
+  return true;
+}

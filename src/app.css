@@ -16,7 +16,7 @@ input, button, select, textarea {
 }
 
 body {
-  font-family: 'Google Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 12px;
   overflow: hidden;
   height: 100vh;
@@ -61,6 +61,32 @@ body {
 
 .driver-warning-dismiss:hover {
   color: #000;
+}
+
+/* Collapsed state: hide the entire left column and let the draw panel take
+   the full width. #curve-panel stays mounted so its state and loaded data
+   survive the toggle. */
+#layout.left-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#layout.left-collapsed #curve-panel {
+  display: none;
+}
+
+#btn-toggle-panels {
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+#btn-toggle-panels:hover {
+  background: #e8e8e8;
 }
 
 #curve-panel {

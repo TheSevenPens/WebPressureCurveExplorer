@@ -1,10 +1,11 @@
 <script>
   import NamedSlider from './NamedSlider.svelte';
   import { CURVE_TYPE } from './curveTypes';
+  import { isIdentityCurve } from './curveMath';
   import { BEZIER_PRESETS } from './bezierPresets';
   import { MIN_APPROACH } from './uiConstants';
-  import PositionControls from './PositionControls.svelte';
   import PressureSmoothingControls from './PressureSmoothingControls.svelte';
+  import SmoothingOrderControls from './SmoothingOrderControls.svelte';
   import CollapsibleSection from './CollapsibleSection.svelte';
 
   export let params;
@@ -16,6 +17,11 @@
   export let canRemoveBezierPoint = false;
   export let onAddBezierPoint = () => {};
   export let onRemoveBezierPoint = () => {};
+
+  // Card titles report whether each stage actually changes the pressure.
+  $: curveHasEffect = !isIdentityCurve(params);
+  $: smoothingHasEffect = Number(params.emaSmoothing ?? 0) > 0;
+  $: onOff = (active) => (active ? 'on' : 'off');
 
   const PRESETS_STORAGE_KEY = 'wpe-user-presets';
 
@@ -145,7 +151,7 @@
 
 <div id="details-panel">
   <div id="details-controls">
-    <CollapsibleSection title="Pressure Curve" open={true}>
+    <CollapsibleSection title="Curve ({onOff(curveHasEffect)})" open={true}>
     <div class="curve-type-row">
       <select value={params.curveType} on:change={handleCurveTypeChange}>
         <option value={CURVE_TYPE.PASSTHROUGH}>Passthrough</option>
@@ -262,12 +268,12 @@
 
     </CollapsibleSection>
 
-    <CollapsibleSection title="Pressure Smoothing">
+    <CollapsibleSection title="Smoothing ({onOff(smoothingHasEffect)})">
       <PressureSmoothingControls bind:params />
     </CollapsibleSection>
 
-    <CollapsibleSection title="Position Smoothing">
-      <PositionControls bind:params />
+    <CollapsibleSection title="Processing Order">
+      <SmoothingOrderControls bind:params />
     </CollapsibleSection>
 
     <CollapsibleSection title="Presets" open={false}>
