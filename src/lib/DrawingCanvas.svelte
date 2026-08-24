@@ -20,7 +20,7 @@
     pressureCurved: '---',
     pressureSmoothed: '---',
     pressureOutput: '---',
-    smoothingOrder: SMOOTHING_ORDER.SMOOTH_THEN_CURVE,
+    smoothingOrder: SMOOTHING_ORDER.CURVE_THEN_SMOOTH,
     tiltX: '---',
     tiltY: '---',
     azimuth: '---',
@@ -89,7 +89,7 @@
   }
 
   function processPressure(rawPressure) {
-    const order = params.smoothingOrder ?? SMOOTHING_ORDER.SMOOTH_THEN_CURVE;
+    const order = params.smoothingOrder ?? SMOOTHING_ORDER.CURVE_THEN_SMOOTH;
 
     if (order === SMOOTHING_ORDER.CURVE_THEN_SMOOTH) {
       const curved = applyPressureCurve(rawPressure, params);

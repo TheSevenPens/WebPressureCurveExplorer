@@ -60,7 +60,7 @@ The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Co
   - **extended/sigmoid**: Curve Amount slider, read-only node values table (driven by chart nodes), min approach radio buttons
   - **bezier**: preset dropdown, add/remove point buttons
 - **Smoothing**: Smoothing Amount slider
-- **Processing**: smooth-then-curve vs curve-then-smooth radio buttons
+- **Processing**: smooth-then-curve vs curve-then-smooth radio buttons (default: curve-then-smooth)
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
 ### PressureSmoothingControls.svelte
