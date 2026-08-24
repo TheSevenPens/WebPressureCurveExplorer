@@ -58,7 +58,8 @@ src/
     PressureCurveControls.svelte  DetailsPanel: curve type selector + parameter sliders
     PressureResponseChart.svelte  Pen hardware response data chart
     PressureResponsePanel.svelte  Load/select response data
-    PressureSmoothingControls.svelte  Pressure smoothing + order controls
+    PressureSmoothingControls.svelte  Pressure smoothing amount
+    SmoothingOrderControls.svelte  Smoothing order radios
     CollapsibleSection.svelte   Reusable collapsible section wrapper
     NamedSlider.svelte          Reusable slider with edit mode + context menu
     DrawingCanvas.svelte        Split pressure-sensitive drawing surface

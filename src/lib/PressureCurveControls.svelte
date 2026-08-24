@@ -4,6 +4,7 @@
   import { BEZIER_PRESETS } from './bezierPresets';
   import { MIN_APPROACH } from './uiConstants';
   import PressureSmoothingControls from './PressureSmoothingControls.svelte';
+  import SmoothingOrderControls from './SmoothingOrderControls.svelte';
   import CollapsibleSection from './CollapsibleSection.svelte';
 
   export let params;
@@ -263,6 +264,10 @@
 
     <CollapsibleSection title="Pressure Smoothing">
       <PressureSmoothingControls bind:params />
+    </CollapsibleSection>
+
+    <CollapsibleSection title="Smoothing Order">
+      <SmoothingOrderControls bind:params />
     </CollapsibleSection>
 
     <CollapsibleSection title="Presets" open={false}>

@@ -8,8 +8,9 @@ App.svelte (root - state owner)
     PressureChartFormat.svelte       (display toggles: grid, labels, nodes, indicators)
     PressureResponseChart.svelte     (pen hardware response data chart)
     PressureCurveControls.svelte     (DetailsPanel: curve type selector + parameter sliders)
-      PressureSmoothingControls.svelte (pressure EMA + order)
+      PressureSmoothingControls.svelte (pressure EMA amount)
         NamedSlider.svelte
+      SmoothingOrderControls.svelte  (smoothing order radios)
       NamedSlider.svelte             (multiple instances for curve params)
       PressureResponsePanel.svelte   (load/select pen response data)
   DrawingCanvas.svelte               (right panel: drawing area)
@@ -58,11 +59,15 @@ The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Co
   - **basic**: Curve Amount slider only (selecting it resets input/output ranges to 0–1 and min approach to clamp)
   - **extended/sigmoid**: Curve Amount slider, read-only node values table (driven by chart nodes), min approach radio buttons
   - **bezier**: preset dropdown, add/remove point buttons
-- **Pressure Smoothing**: Smoothing Amount slider, smoothing order radio buttons
+- **Pressure Smoothing**: Smoothing Amount slider
+- **Smoothing Order**: smooth-then-curve vs curve-then-smooth radio buttons
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
 ### PressureSmoothingControls.svelte
-Thin wrapper around NamedSlider for pressure smoothing. Also includes smoothing order radio buttons (smooth-then-curve vs curve-then-smooth).
+Thin wrapper around NamedSlider for the pressure EMA amount.
+
+### SmoothingOrderControls.svelte
+Radio pair selecting where smoothing sits relative to the curve: smooth-then-curve or curve-then-smooth. Its own DetailsPanel card, separate from the smoothing amount.
 
 ### PressureResponsePanel.svelte
 Panel for loading pen hardware pressure response data. Offers a unified dropdown with three bundled Wacom KP-504E samples (WAP.0038, WAP.0047, WAP.0050) and an "Upload JSON..." option. Includes a "Show effect of curve" checkbox. Fires callbacks to PressureChart when data or checkbox state changes. Hosted in the curve panel's collapsible Pressure Response section.
@@ -276,7 +281,8 @@ Each record is one empirical measurement: the physical force applied in **gram-f
 | [src/lib/PressureCurveControls.svelte](../src/lib/PressureCurveControls.svelte) | Component | Curve type + sliders + presets |
 | [src/lib/PressureResponseChart.svelte](../src/lib/PressureResponseChart.svelte) | Component | Hardware response data chart |
 | [src/lib/PressureResponsePanel.svelte](../src/lib/PressureResponsePanel.svelte) | Component | Load/select pen response data |
-| [src/lib/PressureSmoothingControls.svelte](../src/lib/PressureSmoothingControls.svelte) | Component | Pressure EMA controls |
+| [src/lib/PressureSmoothingControls.svelte](../src/lib/PressureSmoothingControls.svelte) | Component | Pressure EMA amount |
+| [src/lib/SmoothingOrderControls.svelte](../src/lib/SmoothingOrderControls.svelte) | Component | Smoothing order radios |
 | [src/lib/CollapsibleSection.svelte](../src/lib/CollapsibleSection.svelte) | Component | Reusable collapsible section |
 | [src/lib/NamedSlider.svelte](../src/lib/NamedSlider.svelte) | Component | Reusable labeled slider |
 | [src/lib/DrawingCanvas.svelte](../src/lib/DrawingCanvas.svelte) | Component | Drawing surface + pressure input |
