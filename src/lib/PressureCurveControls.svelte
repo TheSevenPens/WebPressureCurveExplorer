@@ -145,7 +145,7 @@
 
 <div id="details-panel">
   <div id="details-controls">
-    <CollapsibleSection title="Pressure Curve" open={true}>
+    <CollapsibleSection title="Curve" open={true}>
     <div class="curve-type-row">
       <select value={params.curveType} on:change={handleCurveTypeChange}>
         <option value={CURVE_TYPE.PASSTHROUGH}>Passthrough</option>
@@ -262,11 +262,11 @@
 
     </CollapsibleSection>
 
-    <CollapsibleSection title="Pressure Smoothing">
+    <CollapsibleSection title="Smoothing">
       <PressureSmoothingControls bind:params />
     </CollapsibleSection>
 
-    <CollapsibleSection title="Smoothing Order">
+    <CollapsibleSection title="Processing">
       <SmoothingOrderControls bind:params />
     </CollapsibleSection>
 

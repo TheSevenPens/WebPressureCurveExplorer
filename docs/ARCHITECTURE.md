@@ -53,21 +53,21 @@ Six checkboxes controlling chart display: grid, labels, nodes, node guides, raw 
 
 ### PressureCurveControls.svelte
 The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Contains:
-- **Pressure Curve** (expanded by default): curve type dropdown with reset button, conditional controls per type:
+- **Curve** (expanded by default): curve type dropdown with reset button, conditional controls per type:
   - **passthrough**: no controls
   - **flat**: height slider
   - **basic**: Curve Amount slider only (selecting it resets input/output ranges to 0–1 and min approach to clamp)
   - **extended/sigmoid**: Curve Amount slider, read-only node values table (driven by chart nodes), min approach radio buttons
   - **bezier**: preset dropdown, add/remove point buttons
-- **Pressure Smoothing**: Smoothing Amount slider
-- **Smoothing Order**: smooth-then-curve vs curve-then-smooth radio buttons
+- **Smoothing**: Smoothing Amount slider
+- **Processing**: smooth-then-curve vs curve-then-smooth radio buttons
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
 ### PressureSmoothingControls.svelte
 Thin wrapper around NamedSlider for the pressure EMA amount.
 
 ### SmoothingOrderControls.svelte
-Radio pair selecting where smoothing sits relative to the curve: smooth-then-curve or curve-then-smooth. Its own DetailsPanel card, separate from the smoothing amount.
+Radio pair selecting where smoothing sits relative to the curve: smooth-then-curve or curve-then-smooth. Its own DetailsPanel card ("Processing"), separate from the smoothing amount.
 
 ### PressureResponsePanel.svelte
 Panel for loading pen hardware pressure response data. Offers a unified dropdown with three bundled Wacom KP-504E samples (WAP.0038, WAP.0047, WAP.0050) and an "Upload JSON..." option. Includes a "Show effect of curve" checkbox. Fires callbacks to PressureChart when data or checkbox state changes. Hosted in the curve panel's collapsible Pressure Response section.
