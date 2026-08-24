@@ -88,3 +88,33 @@ export function buildPointerInfo(pointerEvent, rawPressure, processed) {
     altitude: `${toDegrees(Number(pointerEvent.altitudeAngle ?? 0))}°`,
   };
 }
+
+/**
+ * One pointer sample turned into everything the live indicators and readouts
+ * need. Both input surfaces do exactly this, so they share it rather than
+ * each assigning the same four fields.
+ */
+export function readPointerSample(processor, event, params) {
+  const rawPressure = Number(event.pressure ?? 0);
+  const processed = processor.process(rawPressure, params);
+
+  return {
+    liveRawPressure: rawPressure,
+    livePressure: processed.preCurvePressure,
+    liveOutputPressure: processed.outputPressure,
+    info: buildPointerInfo(event, rawPressure, processed),
+    processed,
+  };
+}
+
+/** The idle counterpart, for when the pointer lifts or leaves. */
+export function clearPointerSample(processor) {
+  processor.reset();
+
+  return {
+    liveRawPressure: null,
+    livePressure: null,
+    liveOutputPressure: null,
+    info: { ...EMPTY_POINTER_INFO },
+  };
+}

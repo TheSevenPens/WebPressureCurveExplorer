@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
   import { timestampedFileName } from './fileNames';
-  import { createPressureProcessor, buildPointerInfo, EMPTY_POINTER_INFO } from './pressurePipeline';
+  import { createPressureProcessor, readPointerSample, clearPointerSample, EMPTY_POINTER_INFO } from './pressurePipeline';
 
   const CANVAS_BG = '#f5f5f0';
   const STROKE_PALETTE = [
@@ -170,12 +170,9 @@
     pickStrokeColor();
     isDrawing = true;
     lastPos = pointerToCanvasPos(event, sourceCanvas);
-    const rawPressure = Number(event.pressure ?? 0);
-    const processedPressure = processor.process(rawPressure, params);
-    liveRawPressure = rawPressure;
-    livePressure = processedPressure.preCurvePressure;
-    liveOutputPressure = processedPressure.outputPressure;
-    info = buildPointerInfo(event, rawPressure, processedPressure);
+    let processedPressure;
+    ({ liveRawPressure, livePressure, liveOutputPressure, info, processed: processedPressure } =
+      readPointerSample(processor, event, params));
 
     if (sourceCanvas?.setPointerCapture) {
       sourceCanvas.setPointerCapture(event.pointerId);
@@ -183,12 +180,9 @@
   }
 
   function handlePointerMove(event, sourceCanvas) {
-    const rawPressure = Number(event.pressure ?? 0);
-    const processedPressure = processor.process(rawPressure, params);
-    liveRawPressure = rawPressure;
-    livePressure = processedPressure.preCurvePressure;
-    liveOutputPressure = processedPressure.outputPressure;
-    info = buildPointerInfo(event, rawPressure, processedPressure);
+    let processedPressure;
+    ({ liveRawPressure, livePressure, liveOutputPressure, info, processed: processedPressure } =
+      readPointerSample(processor, event, params));
 
     if (!isDrawing) return;
 
@@ -200,8 +194,8 @@
       drawSegment(processedCtx, lastPos, currentPos, pSize, pOpacity);
     }
 
-    const rSize = pressureControls === PRESSURE_CONTROL.OPACITY ? brushSize : Math.max(1, rawPressure * brushSize);
-    const rOpacity = pressureControls === PRESSURE_CONTROL.OPACITY ? Math.max(0.02, rawPressure) : 1;
+    const rSize = pressureControls === PRESSURE_CONTROL.OPACITY ? brushSize : Math.max(1, liveRawPressure * brushSize);
+    const rOpacity = pressureControls === PRESSURE_CONTROL.OPACITY ? Math.max(0.02, liveRawPressure) : 1;
     drawSegment(rawCtx, lastPos, currentPos, rSize, rOpacity);
 
     lastPos = currentPos;
@@ -210,11 +204,8 @@
   function stopDrawing() {
     isDrawing = false;
     lastPos = null;
-    processor.reset();
-    liveRawPressure = null;
-    livePressure = null;
-    liveOutputPressure = null;
-    info = { ...EMPTY_POINTER_INFO };
+    ({ liveRawPressure, livePressure, liveOutputPressure, info } =
+      clearPointerSample(processor));
   }
 
   async function copyCanvas(canvasEl) {
