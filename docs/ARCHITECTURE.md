@@ -63,6 +63,8 @@ The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Co
 - **Processing Order**: smooth-then-curve vs curve-then-smooth radio buttons (default: curve-then-smooth)
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
+The Curve and Smoothing titles report whether that stage actually changes the pressure. Curve uses `isIdentityCurve` from curveMath, which samples the configured transform rather than reading `curveType`, so a neutral basic/extended/sigmoid curve (CurveAmount 0, full ranges) reads "off" just as passthrough does. Smoothing reads "off" when `emaSmoothing` is 0, where the EMA alpha is 1 and output equals input.
+
 ### PressureSmoothingControls.svelte
 Thin wrapper around NamedSlider for the pressure EMA amount.
 
@@ -102,8 +104,6 @@ Toolbar showing pointer type, pressure flow values (raw -> intermediate -> outpu
 | `emaConstants.js` | EMA smoothing constants (max, midpoint target, curve exponent) |
 | `fileNames.js` | `timestampedFileName(base, ext)` for export downloads |
 
-The Curve and Smoothing card titles report whether that stage actually changes the pressure. Curve uses `isIdentityCurve` from curveMath, which samples the configured transform rather than reading `curveType`, so a neutral basic/extended/sigmoid curve (CurveAmount 0, full ranges) reads "off" just as passthrough does. Smoothing reads "off" when `emaSmoothing` is 0, where the EMA alpha is 1 and output equals input.
-
 ### curveMath.js
 
 `applyPressureCurve(x, params) -> number` is the main entry point, used by both the chart and the drawing canvas:
@@ -126,6 +126,7 @@ The Curve and Smoothing card titles report whether that stage actually changes t
 
 Other exports and internal helpers:
 
+- `isIdentityCurve(params)` — samples the transform at 33 points and reports whether every input maps to itself; drives the Curve card's on/off title
 - `rawCurveOutput(xNorm, params)` — power/sigmoid calculation, scaled to the output range
 - `rawCurveSlope(xNorm, params)` — numerical derivative (for Hermite transitions)
 - `cubicHermite(t, y0, m0, y1, m1)` — cubic Hermite interpolation
@@ -204,7 +205,7 @@ The `params` object:
 | `transitionWidth` | number | 0-0.5 | Hermite transition smoothing width (no UI control) |
 | `bezierPoints` | array | 2-16 points | Bezier control points |
 | `emaSmoothing` | number | 0-0.99 | Pressure EMA smoothing amount |
-| `smoothingOrder` | string | `'smooth-then-curve'`, `'curve-then-smooth'` | Pipeline order |
+| `smoothingOrder` | string | `'smooth-then-curve'`, `'curve-then-smooth'` | Pipeline order (default: curve-then-smooth) |
 
 Each bezier point is `{ x, y, inX, inY, outX, outY, handleMode }`, where `handleMode` is `'broken'` or `'mirrored'` and points are sorted by `x`.
 

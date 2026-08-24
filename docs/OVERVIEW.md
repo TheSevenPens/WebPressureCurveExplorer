@@ -16,7 +16,8 @@ The app provides two side-by-side panels:
 - **Bezier presets** — built-in preset shapes (Linear, Soft, Firm, S-Curve, Light Touch, Heavy, Step) for quick bezier curve setup
 - **Draggable control nodes** on the chart for extended/sigmoid curves to set input/output ranges visually
 - **Full bezier editor** with adjustable handles, mirrored/broken handle modes, and right-click context menu
-- **EMA smoothing** for pressure, with configurable application order (smooth-then-curve or curve-then-smooth)
+- **EMA smoothing** for pressure, with configurable application order (curve-then-smooth by default, or smooth-then-curve)
+- **On/off status in card titles** — the Curve and Smoothing cards report whether that stage is actually changing the pressure, so a collapsed card still tells you. A curve that is mathematically neutral reads "off" even when a curve type is selected
 - **Min approach modes** (clamp vs cut) controlling how the curve behaves below the input minimum
 - **Live pressure indicators** on the chart showing raw (purple) and effective (green) pressure positions in real time
 - **Pressure response data** — load pen hardware measurement data (physical grams-force vs logical pressure %) from bundled samples or uploaded JSON files, with optional curve overlay
