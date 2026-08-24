@@ -3,9 +3,10 @@
   import PressureChart from './lib/PressureChart.svelte';
   import DrawingCanvas from './lib/DrawingCanvas.svelte';
   import { CURVE_TYPE } from './lib/curveTypes';
-  import { SMOOTHING_ORDER, MIN_APPROACH, HANDLE_MODE } from './lib/uiConstants';
+  import { SMOOTHING_ORDER, SMOOTHING_TYPE, MIN_APPROACH, HANDLE_MODE } from './lib/uiConstants';
 
   const DEFAULT_PARAMS = {
+    smoothingType: SMOOTHING_TYPE.EMA,
     emaSmoothing: 0,
     smoothingOrder: SMOOTHING_ORDER.SMOOTH_THEN_CURVE,
     softness: 0.0,

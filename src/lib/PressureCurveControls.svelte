@@ -3,7 +3,7 @@
   import { CURVE_TYPE } from './curveTypes';
   import { isIdentityCurve } from './curveMath';
   import { BEZIER_PRESETS } from './bezierPresets';
-  import { MIN_APPROACH } from './uiConstants';
+  import { MIN_APPROACH, SMOOTHING_TYPE } from './uiConstants';
   import PressureSmoothingControls from './PressureSmoothingControls.svelte';
   import SmoothingOrderControls from './SmoothingOrderControls.svelte';
   import CollapsibleSection from './CollapsibleSection.svelte';
@@ -20,7 +20,8 @@
 
   // Card titles report whether each stage actually changes the pressure.
   $: curveHasEffect = !isIdentityCurve(params);
-  $: smoothingHasEffect = Number(params.emaSmoothing ?? 0) > 0;
+  $: smoothingHasEffect = (params.smoothingType ?? SMOOTHING_TYPE.EMA) !== SMOOTHING_TYPE.PASSTHROUGH
+    && Number(params.emaSmoothing ?? 0) > 0;
   $: onOff = (active) => (active ? 'on' : 'off');
 
   const PRESETS_STORAGE_KEY = 'wpe-user-presets';
@@ -152,7 +153,7 @@
 <div id="details-panel">
   <div id="details-controls">
     <CollapsibleSection title="Curve ({onOff(curveHasEffect)})" open={true}>
-    <div class="curve-type-row">
+    <div class="type-row">
       <select value={params.curveType} on:change={handleCurveTypeChange}>
         <option value={CURVE_TYPE.PASSTHROUGH}>Passthrough</option>
         <option value={CURVE_TYPE.FLAT}>Flat</option>
@@ -162,7 +163,7 @@
         <option value={CURVE_TYPE.BEZIER}>Bezier</option>
       </select>
       {#if params.curveType !== CURVE_TYPE.PASSTHROUGH}
-        <button id="btn-reset" on:click={resetToDefaults}>↺</button>
+        <button class="btn-reset" on:click={resetToDefaults}>↺</button>
       {/if}
     </div>
 
@@ -269,7 +270,7 @@
     </CollapsibleSection>
 
     <CollapsibleSection title="Smoothing ({onOff(smoothingHasEffect)})">
-      <PressureSmoothingControls bind:params />
+      <PressureSmoothingControls bind:params {defaultParams} />
     </CollapsibleSection>
 
     <CollapsibleSection title="Processing Order">

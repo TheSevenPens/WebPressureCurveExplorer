@@ -200,6 +200,9 @@ The order defaults to smooth-then-curve.
 Only pressure is smoothed. Pointer coordinates are used exactly as the pointer
 event delivers them.
 
+Smoothing has two types, selected in the Smoothing card. **Passthrough** skips
+the stage entirely. **EMA** applies the exponential moving average below.
+
 EMA (Exponential Moving Average) smoothing:
 ```
 smoothed = smoothed + alpha * (raw - smoothed)

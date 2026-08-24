@@ -3,6 +3,11 @@ export const SMOOTHING_ORDER = Object.freeze({
   CURVE_THEN_SMOOTH: 'curve-then-smooth',
 });
 
+export const SMOOTHING_TYPE = Object.freeze({
+  PASSTHROUGH: 'passthrough',
+  EMA: 'ema',
+});
+
 export const MIN_APPROACH = Object.freeze({
   CLAMP: 'clamp',
   CUT: 'cut',

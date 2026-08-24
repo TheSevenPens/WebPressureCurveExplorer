@@ -61,14 +61,18 @@ The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Co
   - **basic**: Curve Amount slider only (selecting it resets input/output ranges to 0–1 and min approach to clamp)
   - **extended/sigmoid**: Curve Amount slider, read-only node values table (driven by chart nodes), min approach radio buttons
   - **bezier**: preset dropdown, add/remove point buttons
-- **Smoothing (on/off)**: Smoothing Amount slider
+- **Smoothing (on/off)**: smoothing type dropdown with reset button, mirroring the Curve card:
+  - **passthrough**: no controls, no reset — smoothing is skipped regardless of the stored amount
+  - **EMA**: Smoothing Amount slider
 - **Processing Order**: smooth-then-curve vs curve-then-smooth radio buttons (default: smooth-then-curve)
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
-The Curve and Smoothing titles report whether that stage actually changes the pressure. Curve uses `isIdentityCurve` from curveMath, which samples the configured transform rather than reading `curveType`, so a neutral basic/extended/sigmoid curve (CurveAmount 0, full ranges) reads "off" just as passthrough does. Smoothing reads "off" when `emaSmoothing` is 0, where the EMA alpha is 1 and output equals input.
+The Curve and Smoothing titles report whether that stage actually changes the pressure. Curve uses `isIdentityCurve` from curveMath, which samples the configured transform rather than reading `curveType`, so a neutral basic/extended/sigmoid curve (CurveAmount 0, full ranges) reads "off" just as passthrough does. Smoothing reads "off" when the type is passthrough, or when `emaSmoothing` is 0, where the EMA alpha is 1 and output equals input.
 
 ### PressureSmoothingControls.svelte
-Thin wrapper around NamedSlider for the pressure EMA amount.
+Smoothing type dropdown (passthrough or EMA) plus, for EMA, the Smoothing Amount slider and a reset button. Follows the same shape as the Curve card's type selector, and hides the reset for passthrough exactly as that card does.
+
+Selecting passthrough leaves `emaSmoothing` untouched, so switching back to EMA restores the previous amount.
 
 ### SmoothingOrderControls.svelte
 Radio pair selecting where smoothing sits relative to the curve: smooth-then-curve or curve-then-smooth. Its own DetailsPanel card ("Processing Order"), separate from the smoothing amount.
@@ -99,7 +103,7 @@ Toolbar showing pointer type, pressure flow values (raw -> intermediate -> outpu
 |---|---|
 | `curveMath.js` | Pure math: curve evaluation, bezier normalization, Hermite interpolation |
 | `curveTypes.js` | `CURVE_TYPE` enum for all curve type identifiers |
-| `uiConstants.js` | `SMOOTHING_ORDER`, `MIN_APPROACH`, `HANDLE_MODE`, `COLOR_MODE`, `PRESSURE_CONTROL` enums |
+| `uiConstants.js` | `SMOOTHING_ORDER`, `SMOOTHING_TYPE`, `MIN_APPROACH`, `HANDLE_MODE`, `COLOR_MODE`, `PRESSURE_CONTROL` enums |
 | `bezierPresets.js` | Built-in bezier curve preset point definitions |
 | `canvasConstants.js` | Shared padding/spacing values for canvas charts |
 | `canvasUtils.js` | Shared canvas drawing: background, grid, axis labels, indicator dots |
@@ -206,7 +210,8 @@ The `params` object:
 | `flatLevel` | number | 0-1 | Constant output for flat curve |
 | `transitionWidth` | number | 0-0.5 | Hermite transition smoothing width (no UI control) |
 | `bezierPoints` | array | 2-16 points | Bezier control points |
-| `emaSmoothing` | number | 0-0.99 | Pressure EMA smoothing amount |
+| `smoothingType` | string | `'passthrough'`, `'ema'` | Smoothing algorithm (default: ema) |
+| `emaSmoothing` | number | 0-0.99 | Pressure EMA smoothing amount (EMA type only) |
 | `smoothingOrder` | string | `'smooth-then-curve'`, `'curve-then-smooth'` | Pipeline order (default: smooth-then-curve) |
 
 Each bezier point is `{ x, y, inX, inY, outX, outY, handleMode }`, where `handleMode` is `'broken'` or `'mirrored'` and points are sorted by `x`.

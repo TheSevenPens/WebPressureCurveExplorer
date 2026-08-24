@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { applyPressureCurve } from './curveMath';
-  import { SMOOTHING_ORDER, COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
+  import { SMOOTHING_ORDER, SMOOTHING_TYPE, COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
   import { timestampedFileName } from './fileNames';
   import DrawingCanvasHeader from './DrawingCanvasHeader.svelte';
 
@@ -72,6 +72,12 @@
   }
 
   function getSmoothedPressure(rawPressure) {
+    const type = params.smoothingType ?? SMOOTHING_TYPE.EMA;
+    if (type === SMOOTHING_TYPE.PASSTHROUGH) {
+      smoothedPressure = rawPressure;
+      return rawPressure;
+    }
+
     const smoothing = Math.min(0.99, Math.max(0, Number(params.emaSmoothing ?? 0)));
 
     if (smoothing <= 0) {

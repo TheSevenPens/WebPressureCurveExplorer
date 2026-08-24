@@ -373,13 +373,14 @@ input[type="checkbox"]:disabled {
   gap: 8px;
 }
 
-.curve-type-row {
+/* Shared by the Curve and Smoothing cards: a type selector plus reset. */
+.type-row {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-#btn-reset {
+.btn-reset {
   width: 28px;
   height: 28px;
   padding: 0;
@@ -393,7 +394,7 @@ input[type="checkbox"]:disabled {
   transition: background 0.15s, color 0.15s;
 }
 
-#btn-reset:hover {
+.btn-reset:hover {
   background: #e4e4f0;
   color: #1a1a2e;
 }
