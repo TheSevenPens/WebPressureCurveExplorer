@@ -46,6 +46,8 @@ npm install
 npm run dev      # Start dev server (default: http://localhost:5173)
 npm run build    # Production build to dist/
 npm run preview  # Preview production build
+npm test         # Run the unit tests once
+npm run test:watch  # Run them in watch mode
 ```
 
 ## Project structure
@@ -79,6 +81,12 @@ src/
     emaConstants.js             Shared EMA smoothing constants
     fileNames.js                Timestamped export filename helper
     pressurePipeline.js         Shared smoothing state + pen info builder
+    drawPressureCurve.js        Curve chart drawing + coordinate mapping
+    bezierInteraction.js        Bezier hit testing and editing
+    indicatorStyles.js          Live indicator colours
+    canvasExport.js             Canvas copy/download helpers
+    userPresets.js              Preset storage + list operations
+    curveMath.test.js           vitest suite for the curve math
 sample-pressure-response/       Bundled pen hardware measurement JSON files
 docs/                           Documentation
 ```
