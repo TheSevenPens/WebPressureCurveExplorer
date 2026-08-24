@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { applyPressureCurve, normalizeBezierPoints, invertPressureCurve } from './curveMath';
   import { CURVE_TYPE } from './curveTypes';
-  import { MIN_APPROACH, HANDLE_MODE, SMOOTHING_ORDER } from './uiConstants';
+  import { MIN_APPROACH, HANDLE_MODE, SMOOTHING_ORDER, VIEW_MODE } from './uiConstants';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
   import { drawBackground, drawGrid as drawCanvasGrid, drawLabels as drawCanvasLabels, drawIndicator } from './canvasUtils';
   import { timestampedFileName } from './fileNames';
@@ -25,6 +25,8 @@
   export let liveOutputPressure = null;
   export let showRawIndicator = true;
   export let showEffectiveIndicator = true;
+  export let viewMode = VIEW_MODE.CANVAS;
+  export let onViewModeChange = () => {};
   export let defaultParams;
 
   let showGrid = true;
@@ -951,6 +953,25 @@
 <div id="curve-panel">
   <div id="panel-left" bind:this={curvePanelEl}>
     <div class="panel-title">Pressure explorer</div>
+
+    <!-- Primary navigation for the whole app, so it leads the column rather
+         than sitting among the view's own controls. -->
+    <div class="mode-switch" role="group" aria-label="View mode">
+      <button
+        type="button"
+        class="mode-btn"
+        class:active={viewMode === VIEW_MODE.CANVAS}
+        aria-pressed={viewMode === VIEW_MODE.CANVAS}
+        on:click={() => onViewModeChange(VIEW_MODE.CANVAS)}
+      >Canvas</button>
+      <button
+        type="button"
+        class="mode-btn"
+        class:active={viewMode === VIEW_MODE.RESPONSE}
+        aria-pressed={viewMode === VIEW_MODE.RESPONSE}
+        on:click={() => onViewModeChange(VIEW_MODE.RESPONSE)}
+      >Pressure Response</button>
+    </div>
     <canvas
       id="curve-canvas"
       bind:this={curveCanvasEl}

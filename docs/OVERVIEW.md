@@ -8,7 +8,7 @@ The app has a fixed left column and a right pane that switches between two views
 
 - **Pressure Curve Editor** (left) — An interactive chart where users select a curve type (passthrough, flat, basic, extended, sigmoid, or bezier), adjust parameters via sliders and draggable control nodes, and see the resulting pressure mapping function in real time.
 
-- **View pane** (right) — Two stacked toolbars over the active view. The first reports live pen data and is the same in both views; the second holds the view switcher and whichever controls that view needs. The pane switches between:
+- **View pane** (right) — Two stacked toolbars over the active view. The first reports live pen data and is the same in both views; the second holds whichever controls that view needs. The view is chosen from the switch at the top of the left column, and the pane shows:
   - **Canvas** — A split drawing surface with two halves. The top half ("Pressure processing: ON") applies the full pressure pipeline (smoothing + curve). The bottom half ("Pressure processing: OFF") uses raw unprocessed pen pressure. Drawing in either half mirrors the stroke to the other, making it easy to compare the effect of pressure processing side by side.
   - **Pressure Response** — The pen hardware response chart at full pane size. It captures pen pressure without drawing, so you can press the pen and watch the live indicators move along your hardware's actual force curve.
 

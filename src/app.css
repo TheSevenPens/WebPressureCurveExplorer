@@ -74,6 +74,45 @@ body {
   display: none;
 }
 
+/* Primary view navigation, at the head of the chart column. */
+.mode-switch {
+  display: flex;
+  margin: 8px 0 10px;
+  border: 1px solid #b8b8c6;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 7px 8px;
+  background: #fff;
+  border: none;
+  border-right: 1px solid #b8b8c6;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  color: #555566;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn:last-child {
+  border-right: none;
+}
+
+.mode-btn:hover:not(.active) {
+  background: #eaeaf2;
+  color: #1a1a2e;
+}
+
+.mode-btn.active {
+  background: var(--slider-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
 .panel-rail {
   /* 24px so the target meets WCAG 2.5.8, which matters more than usual for a
      pen-driven app. It is full height, so only the width was ever tight. */

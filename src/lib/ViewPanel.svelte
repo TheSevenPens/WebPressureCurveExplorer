@@ -29,42 +29,14 @@
   let pressureControls = PRESSURE_CONTROL.SIZE;
   let drawingCanvas;
 
-  function setMode(mode) {
-    if (viewMode === mode) return;
-    viewMode = mode;
-    // The outgoing view owned the live values; clear them so the indicators do
-    // not freeze at whatever the last pointer event left behind.
-    info = { ...EMPTY_POINTER_INFO };
-    livePressure = null;
-    liveRawPressure = null;
-    liveOutputPressure = null;
-  }
+  // App clears the live pressures on a switch; the readouts are ours to clear.
+  $: if (viewMode) info = { ...EMPTY_POINTER_INFO };
 </script>
 
 <div id="view-panel">
   <PenDataToolbar {info} />
 
   <div class="view-controls-toolbar">
-    <div class="mode-switch" role="group" aria-label="View mode">
-      <button
-        type="button"
-        class="mode-btn"
-        class:active={viewMode === VIEW_MODE.CANVAS}
-        aria-pressed={viewMode === VIEW_MODE.CANVAS}
-        on:click={() => setMode(VIEW_MODE.CANVAS)}
-      >Canvas</button>
-      <button
-        type="button"
-        class="mode-btn"
-        class:active={viewMode === VIEW_MODE.RESPONSE}
-        aria-pressed={viewMode === VIEW_MODE.RESPONSE}
-        on:click={() => setMode(VIEW_MODE.RESPONSE)}
-      >Pressure Response</button>
-    </div>
-
-
-    <span class="toolbar-sep"></span>
-
     {#if viewMode === VIEW_MODE.CANVAS}
       <CanvasControls
         onClear={() => drawingCanvas?.clear()}
@@ -137,40 +109,7 @@
     flex-shrink: 0;
   }
 
-  .mode-switch {
-    display: inline-flex;
-    border: 1px solid #bbb;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .mode-btn {
-    padding: 4px 10px;
-    background: #fff;
-    border: none;
-    border-right: 1px solid #bbb;
-    cursor: pointer;
-    font-size: 12px;
-    font-family: inherit;
-    color: #555;
-    white-space: nowrap;
-  }
-
-  .mode-btn:last-child {
-    border-right: none;
-  }
-
-  .mode-btn:hover:not(.active) {
-    background: #e8e8e8;
-  }
-
-  .mode-btn.active {
-    background: #5e85a5;
-    color: #fff;
-    font-weight: 600;
-  }
-
-  .view-body {
+            .view-body {
     flex: 1;
     min-height: 0;
     display: flex;
@@ -181,9 +120,4 @@
     display: none;
   }
 
-  .toolbar-sep {
-    width: 1px;
-    align-self: stretch;
-    background: #ccc;
-  }
-</style>
+  </style>

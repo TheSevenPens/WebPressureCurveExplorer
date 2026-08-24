@@ -53,6 +53,17 @@
   let showResponseCurveEffect = true;
   let showRawIndicator = true;
   let showEffectiveIndicator = true;
+
+  function setViewMode(mode) {
+    if (viewMode === mode) return;
+    viewMode = mode;
+    // The outgoing view owned these; clear them so the indicators do not
+    // freeze at whatever its last pointer event left behind.
+    livePressure = null;
+    liveRawPressure = null;
+    liveOutputPressure = null;
+  }
+
   function preventContextMenu(event) {
     event.preventDefault();
   }
@@ -76,6 +87,8 @@
     bind:params
     bind:showRawIndicator
     bind:showEffectiveIndicator
+    {viewMode}
+    onViewModeChange={setViewMode}
     {livePressure}
     {liveRawPressure}
     {liveOutputPressure}
@@ -97,7 +110,7 @@
     bind:livePressure
     bind:liveRawPressure
     bind:liveOutputPressure
-    bind:viewMode
+    {viewMode}
     {params}
     {showRawIndicator}
     {showEffectiveIndicator}

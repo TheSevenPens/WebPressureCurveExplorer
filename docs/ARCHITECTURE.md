@@ -29,11 +29,11 @@ The two panels sit in a CSS grid (`#layout`, `grid-template-columns: auto minmax
 | Driver warning banner | `.driver-warning` | Full-width, dismissable, conditionally rendered |
 | Curve panel | `#curve-panel` | Left column, `width: max-content`, holds the two sub-columns below |
 | Panel rail | `.panel-rail` | Collapse control on the seam between the columns; its own grid column so it survives the collapse |
-| Chart column | `#panel-left` | Panel title, curve canvas, chart action buttons (Copy, Save, Chart Format), Pressure Response section |
+| Chart column | `#panel-left` | Panel title, view mode switch, curve canvas, chart action buttons (Copy, Save, Chart Format) |
 | Details panel | `#details-panel` | Fixed 247px, the only independently scrolling region |
 | View panel | `#view-panel` | Right column: both toolbars plus the active view |
 | Pen data toolbar | `.pen-data-toolbar` | Toolbar 1: live pen readouts, identical in both views |
-| View controls toolbar | `.view-controls-toolbar` | Toolbar 2: mode switch, then view-specific controls |
+| View controls toolbar | `.view-controls-toolbar` | Toolbar 2: controls for the active view only |
 | View body | `.view-body` | One per view; the inactive one carries `.hidden` |
 | Draw panel | `#draw-panel` | Canvas view body: the split canvas |
 | Split canvas | `.split-canvas-wrap` | Holds both `.draw-canvas` elements, each `flex: 1 1 0` so they share height evenly |
@@ -49,6 +49,7 @@ Single source of truth. Owns the `params` object, `livePressure`, `liveRawPressu
 
 ### PressureChart.svelte
 Largest component (~1040 lines). Renders the pressure curve chart on a Canvas 2D element. Handles:
+- Hosting the Canvas / Pressure Response mode switch at the head of the column
 - Drawing the curve path for all curve types (passthrough, flat, basic/extended/sigmoid, bezier)
 - Draggable min/max control nodes for extended/sigmoid curves (basic pins its ranges, so it has no nodes)
 - Full bezier point editing (drag anchors and handles, add/remove points via buttons or context menu)
@@ -91,9 +92,11 @@ Radio pair selecting where smoothing sits relative to the curve: smooth-then-cur
 The right column. Owns the two toolbars and swaps the view beneath them.
 
 - **Pen data toolbar** — live pen readouts, identical in both views, so it lives here rather than inside either one.
-- **View controls toolbar** — the Canvas / Pressure Response mode switch, then a separator, then whichever control set the active view needs.
+- **View controls toolbar** — whichever control set the active view needs.
 
-Both view bodies stay mounted and the inactive one is hidden with `display: none`, so switching modes does not discard the drawing or the loaded response data. Switching clears the live pressure values, since the outgoing view owned them and its last pointer event would otherwise freeze the indicators.
+Both view bodies stay mounted and the inactive one is hidden with `display: none`, so switching modes does not discard the drawing or the loaded response data. App clears the live pressure values on a switch and ViewPanel clears the readouts, since the outgoing view owned them and its last pointer event would otherwise freeze the indicators.
+
+The mode switch itself lives at the head of the chart column, not here — it is navigation for the whole app rather than a control belonging to either view. The consequence is that switching is unavailable while the left column is collapsed; the seam rail brings it back in one click.
 
 Brush size, colour mode and pressure-control mode live here because the controls sit in the toolbar while the strokes are drawn one level down in DrawingCanvas.
 
