@@ -11,6 +11,7 @@
   export let showCurveEffect = true;
   export let liveRawPressure = null;
   export let livePressure = null;
+  export let liveOutputPressure = null;
   export let showRawIndicator = true;
   export let showEffectiveIndicator = true;
 
@@ -28,6 +29,7 @@
     showCurveEffect;
     liveRawPressure;
     livePressure;
+    liveOutputPressure;
     showRawIndicator;
     showEffectiveIndicator;
     draw();
@@ -144,8 +146,10 @@
     }
 
     if (showEffectiveIndicator && livePressure !== null) {
+      // When the Y axis shows OUTPUT %, use the pressure that actually drives
+      // the brush; on the LOGICAL % axis the pre-curve value is the right one.
       const yNorm = (showCurveEffect && params)
-        ? applyPressureCurve(livePressure, params)
+        ? (liveOutputPressure ?? applyPressureCurve(livePressure, params))
         : livePressure;
       drawIndicator(yNorm, '#14a050', 'rgba(20, 160, 80, 0.25)');
     }

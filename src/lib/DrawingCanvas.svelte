@@ -30,6 +30,7 @@
   export let params;
   export let livePressure = null;
   export let liveRawPressure = null;
+  export let liveOutputPressure = null;
   export let leftPanelsCollapsed = false;
   export let onToggleLeftPanels = () => {};
 
@@ -248,6 +249,7 @@
     const processedPressure = processPressure(rawPressure);
     liveRawPressure = rawPressure;
     livePressure = processedPressure.preCurvePressure;
+    liveOutputPressure = processedPressure.outputPressure;
     updateInfo(event, rawPressure, processedPressure);
 
     if (sourceCanvas?.setPointerCapture) {
@@ -260,6 +262,7 @@
     const processedPressure = processPressure(rawPressure);
     liveRawPressure = rawPressure;
     livePressure = processedPressure.preCurvePressure;
+    liveOutputPressure = processedPressure.outputPressure;
     updateInfo(event, rawPressure, processedPressure);
 
     if (!isDrawing) return;
@@ -285,6 +288,7 @@
     smoothedPressure = null;
     liveRawPressure = null;
     livePressure = null;
+    liveOutputPressure = null;
     resetInfo();
   }
 

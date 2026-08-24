@@ -24,6 +24,7 @@
   export let params;
   export let livePressure = null;
   export let liveRawPressure = null;
+  export let liveOutputPressure = null;
   export let defaultParams;
 
   let pressureResponseData = null;
@@ -78,6 +79,7 @@
     params;
     livePressure;
     liveRawPressure;
+    liveOutputPressure;
     showGrid;
     showLabels;
     showNodes;
@@ -608,7 +610,15 @@
     }
 
     if (showEffectiveIndicator && livePressure !== null) {
-      const mapped = applyPressureCurve(livePressure, params);
+      // Plot the pressure that actually drives the brush, rather than
+      // re-deriving it from the pre-curve input. Under smooth-then-curve the
+      // output is curve(smoothed), so the dot sits on the curve as before.
+      // Under curve-then-smooth the smoothing happens after the curve, so the
+      // output is not a point on the curve at all: the dot shares the raw
+      // dot's X and drops to the smoothed Y, and that vertical gap is the
+      // effect of smoothing. Without this the two dots coincide exactly and
+      // the effective one is painted over.
+      const mapped = liveOutputPressure ?? applyPressureCurve(livePressure, params);
       drawIndicator(curveCtx, plotW, plotH, livePressure, mapped, '#14a050', 'rgba(20, 160, 80, 0.2)');
     }
 
@@ -1051,6 +1061,7 @@
           showCurveEffect={showResponseCurveEffect}
           {liveRawPressure}
           {livePressure}
+          {liveOutputPressure}
           {showRawIndicator}
           {showEffectiveIndicator}
         />

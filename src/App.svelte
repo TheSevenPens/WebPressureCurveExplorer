@@ -42,6 +42,7 @@
   let params = { ...DEFAULT_PARAMS };
   let livePressure = null;
   let liveRawPressure = null;
+  let liveOutputPressure = null;
   let showDriverWarning = true;
   let leftPanelsCollapsed = false;
   function preventContextMenu(event) {
@@ -63,10 +64,11 @@
   </div>
 {/if}
 <div id="layout" class:left-collapsed={leftPanelsCollapsed}>
-  <PressureChart bind:params {livePressure} {liveRawPressure} defaultParams={DEFAULT_PARAMS} />
+  <PressureChart bind:params {livePressure} {liveRawPressure} {liveOutputPressure} defaultParams={DEFAULT_PARAMS} />
   <DrawingCanvas
     bind:livePressure
     bind:liveRawPressure
+    bind:liveOutputPressure
     {params}
     {leftPanelsCollapsed}
     onToggleLeftPanels={() => leftPanelsCollapsed = !leftPanelsCollapsed}
