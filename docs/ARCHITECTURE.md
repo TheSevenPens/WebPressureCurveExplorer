@@ -62,7 +62,7 @@ The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Co
   - **extended/sigmoid**: Curve Amount slider, read-only node values table (driven by chart nodes), min approach radio buttons
   - **bezier**: preset dropdown, add/remove point buttons
 - **Smoothing (on/off)**: Smoothing Amount slider
-- **Processing Order**: smooth-then-curve vs curve-then-smooth radio buttons (default: curve-then-smooth)
+- **Processing Order**: smooth-then-curve vs curve-then-smooth radio buttons (default: smooth-then-curve)
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
 The Curve and Smoothing titles report whether that stage actually changes the pressure. Curve uses `isIdentityCurve` from curveMath, which samples the configured transform rather than reading `curveType`, so a neutral basic/extended/sigmoid curve (CurveAmount 0, full ranges) reads "off" just as passthrough does. Smoothing reads "off" when `emaSmoothing` is 0, where the EMA alpha is 1 and output equals input.
@@ -207,7 +207,7 @@ The `params` object:
 | `transitionWidth` | number | 0-0.5 | Hermite transition smoothing width (no UI control) |
 | `bezierPoints` | array | 2-16 points | Bezier control points |
 | `emaSmoothing` | number | 0-0.99 | Pressure EMA smoothing amount |
-| `smoothingOrder` | string | `'smooth-then-curve'`, `'curve-then-smooth'` | Pipeline order (default: curve-then-smooth) |
+| `smoothingOrder` | string | `'smooth-then-curve'`, `'curve-then-smooth'` | Pipeline order (default: smooth-then-curve) |
 
 Each bezier point is `{ x, y, inX, inY, outX, outY, handleMode }`, where `handleMode` is `'broken'` or `'mirrored'` and points are sorted by `x`.
 

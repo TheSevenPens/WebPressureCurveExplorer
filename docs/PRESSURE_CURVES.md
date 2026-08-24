@@ -195,7 +195,7 @@ Raw pen pressure (event.pressure, 0-1)
 Output pressure (0-1) --> brush size or opacity
 ```
 
-The order defaults to curve-then-smooth.
+The order defaults to smooth-then-curve.
 
 Only pressure is smoothed. Pointer coordinates are used exactly as the pointer
 event delivers them.

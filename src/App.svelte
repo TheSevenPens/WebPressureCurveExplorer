@@ -7,7 +7,7 @@
 
   const DEFAULT_PARAMS = {
     emaSmoothing: 0,
-    smoothingOrder: SMOOTHING_ORDER.CURVE_THEN_SMOOTH,
+    smoothingOrder: SMOOTHING_ORDER.SMOOTH_THEN_CURVE,
     softness: 0.0,
     inputMinimum: 0,
     inputMaximum: 1,
