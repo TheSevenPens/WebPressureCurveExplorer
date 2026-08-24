@@ -33,7 +33,7 @@ The app provides two side-by-side panels:
 - **Svelte 5** — component framework
 - **Vite 6** — build tool and dev server
 - **Canvas 2D API** — all chart and drawing rendering
-- **Google Sans** — primary font (Segoe UI fallback)
+- **Inter** — primary font, loaded from Google Fonts (Segoe UI fallback)
 - **No external UI libraries** — pure CSS styling, zero runtime dependencies
 
 ## Running the app
