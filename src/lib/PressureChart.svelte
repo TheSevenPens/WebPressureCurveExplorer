@@ -46,6 +46,7 @@
 
   let menuCopyOpen = false;
   let menuSaveOpen = false;
+  let menuFormatOpen = false;
   let bezierContextMenuOpen = false;
   let bezierContextMenuX = 0;
   let bezierContextMenuY = 0;
@@ -807,6 +808,7 @@
     event.stopPropagation();
     menuCopyOpen = !menuCopyOpen;
     menuSaveOpen = false;
+    menuFormatOpen = false;
     bezierContextMenuOpen = false;
   }
 
@@ -814,12 +816,22 @@
     event.stopPropagation();
     menuSaveOpen = !menuSaveOpen;
     menuCopyOpen = false;
+    menuFormatOpen = false;
+    bezierContextMenuOpen = false;
+  }
+
+  function toggleFormatMenu(event) {
+    event.stopPropagation();
+    menuFormatOpen = !menuFormatOpen;
+    menuCopyOpen = false;
+    menuSaveOpen = false;
     bezierContextMenuOpen = false;
   }
 
   function closeMenus() {
     menuCopyOpen = false;
     menuSaveOpen = false;
+    menuFormatOpen = false;
     bezierContextMenuOpen = false;
     bezierContextValueX = null;
     bezierContextValueY = null;
@@ -909,6 +921,12 @@
     saveChart(region);
   }
 
+  // Outside clicks already dismiss; Escape is the other expected way out,
+  // and matters more now that a panel can hold focus.
+  function onMenuKeyDown(event) {
+    if (event.key === 'Escape') closeMenus();
+  }
+
   onMount(() => {
     curveCtx = curveCanvasEl.getContext('2d');
     resizeCurveCanvas();
@@ -917,11 +935,13 @@
     resizeObserver.observe(curvePanelEl);
 
     document.addEventListener('click', closeMenus);
+    document.addEventListener('keydown', onMenuKeyDown);
     isReady = true;
 
     return () => {
       resizeObserver?.disconnect();
       document.removeEventListener('click', closeMenus);
+      document.removeEventListener('keydown', onMenuKeyDown);
     };
   });
 </script>
@@ -994,20 +1014,30 @@
           <button on:click={() => handleSaveAction('plot')}>Plot area only</button>
         </div>
       </div>
-    </div>
 
-    <CollapsibleSection title="Chart Format">
-      <PressureChartFormat
-        bind:showGrid
-        bind:showLabels
-        bind:showNodes
-        bind:showNodeGuides
-        bind:showRawIndicator
-        bind:showEffectiveIndicator
-        {curveActive}
-        onToggle={drawCurveCanvas}
-      />
-    </CollapsibleSection>
+      <div class="dropdown-wrap">
+        <button
+          class="action-btn"
+          aria-expanded={menuFormatOpen}
+          on:click={toggleFormatMenu}
+        >Chart Format ▾</button>
+        <!-- A popover rather than a menu: it holds checkboxes, not commands,
+             so it carries no menu role and swallows clicks to stay open while
+             several options are toggled. -->
+        <div class="dropdown-panel" class:open={menuFormatOpen} on:click|stopPropagation>
+          <PressureChartFormat
+            bind:showGrid
+            bind:showLabels
+            bind:showNodes
+            bind:showNodeGuides
+            bind:showRawIndicator
+            bind:showEffectiveIndicator
+            {curveActive}
+            onToggle={drawCurveCanvas}
+          />
+        </div>
+      </div>
+    </div>
 
     <CollapsibleSection title="Pressure Response">
       <PressureResponsePanel

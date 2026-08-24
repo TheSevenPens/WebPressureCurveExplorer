@@ -25,7 +25,7 @@ The two panels sit in a CSS grid (`#layout`, `grid-template-columns: auto minmax
 |---|---|---|
 | Driver warning banner | `.driver-warning` | Full-width, dismissable, conditionally rendered |
 | Curve panel | `#curve-panel` | Left column, `width: max-content`, holds the two sub-columns below |
-| Chart column | `#panel-left` | Panel title, curve canvas, chart export actions, Chart Format and Pressure Response sections |
+| Chart column | `#panel-left` | Panel title, curve canvas, chart action buttons (Copy, Save, Chart Format), Pressure Response section |
 | Details panel | `#details-panel` | Fixed 247px, the only independently scrolling region |
 | Draw panel | `#draw-panel` | Right column: toolbar plus the split canvas |
 | Split canvas | `.split-canvas-wrap` | Holds both `.draw-canvas` elements, each `flex: 1 1 0` so they share height evenly |
@@ -50,6 +50,8 @@ Its canvas is sized in JS from `#panel-left`'s `clientWidth`, backed at `deviceP
 
 ### PressureChartFormat.svelte
 Six checkboxes controlling chart display: grid, labels, nodes, node guides, raw indicator, effective indicator. Node-related toggles are disabled when no editable curve is active.
+
+Presented in a popover (`.dropdown-panel`) opened by the Chart Format button beside Copy and Save, rather than a collapsible card. It is a popover and not a menu: it holds checkboxes rather than commands, so it carries no menu role, and it stops click propagation so toggling several options in a row does not dismiss it. The Copy and Save dropdowns remain menus, where dismiss-on-click is what you want.
 
 ### PressureCurveControls.svelte
 The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Contains:

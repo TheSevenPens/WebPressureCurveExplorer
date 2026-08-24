@@ -281,6 +281,27 @@ input[type="checkbox"]:disabled {
   background: #f0f0f8;
 }
 
+/* Popover panel for the chart format options. Same anchoring as
+   .dropdown-menu, but padded for arbitrary content and right-aligned so a
+   panel wider than its button cannot overflow the left column. */
+.dropdown-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  z-index: 100;
+  background: #ffffff;
+  border: 1px solid #c8c8d8;
+  border-radius: 4px;
+  padding: 8px 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+}
+
+.dropdown-panel.open {
+  display: block;
+}
+
 .canvas-context-menu {
   position: fixed;
   z-index: 300;
