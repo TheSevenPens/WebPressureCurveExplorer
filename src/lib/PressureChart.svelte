@@ -5,12 +5,17 @@
   import { MIN_APPROACH, HANDLE_MODE, SMOOTHING_ORDER, VIEW_MODE } from './uiConstants';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
   import { drawBackground, drawGrid as drawCanvasGrid, drawLabels as drawCanvasLabels, drawIndicator } from './canvasUtils';
-  import { drawCurveChart, curveLayout, HANDLE_RADIUS } from './drawPressureCurve';
+  import { drawCurveChart, curveLayout, valueFromCanvasX, valueFromCanvasY, isInsidePlotArea } from './drawPressureCurve';
+  import {
+    NODE_HIT_RADIUS,
+    hitTestBezierPoint, hitTestBezierHandle, isRemovableBezierPoint,
+    addBezierPointInWidestGap, removeBezierPointAt, insertBezierPointAt,
+    moveBezierHandle, setBezierHandleMode,
+  } from './bezierInteraction';
   import { copyPngToClipboard, downloadCanvas, flattenOntoWhite } from './canvasExport';
   import PressureChartFormat from './PressureChartFormat.svelte';
   import PressureCurveControls from './PressureCurveControls.svelte';
 
-  const NODE_HIT_RADIUS = 8;
 
   export let params;
   export let livePressure = null;
@@ -75,113 +80,38 @@
     params = { ...params, ...nextValues };
   }
 
-  function isRemovableBezierPoint(index) {
-    return index !== null && index > 0 && index < bezierPoints.length - 1;
+  /**
+   * Bezier points read straight from params rather than the `bezierPoints`
+   * reactive value, which can lag when several pointer events are handled in
+   * the same tick. Mutating from a stale copy silently discards the previous
+   * edit.
+   */
+  function currentBezierPoints() {
+    return normalizeBezierPoints(params.bezierPoints);
   }
 
   function updateBezierPoints(nextPoints) {
+    // Normalizing here as well as in the bezierInteraction helpers: the anchor
+    // drag below builds its points inline, and normalization is idempotent.
     patchParams({ bezierPoints: normalizeBezierPoints(nextPoints) });
-  }
-
-  function bezierPointCenter(index) {
-    const { plotW, plotH } = currentLayout();
-    const point = bezierPoints[index];
-    if (!point) return null;
-    return {
-      x: PAD_LEFT + point.x * plotW,
-      y: PAD_TOP + plotH - point.y * plotH,
-    };
-  }
-
-  function hitTestBezierPoint(cssX, cssY) {
-    for (let i = bezierPoints.length - 1; i >= 0; i -= 1) {
-      const center = bezierPointCenter(i);
-      if (!center) continue;
-      const dx = cssX - center.x;
-      const dy = cssY - center.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= NODE_HIT_RADIUS) return i;
-    }
-    return null;
-  }
-
-  function bezierHandleCenter(index, handle) {
-    const { plotW, plotH } = currentLayout();
-    const point = bezierPoints[index];
-    if (!point) return null;
-
-    const xValue = handle === 'in' ? point.inX : point.outX;
-    const yValue = handle === 'in' ? point.inY : point.outY;
-    return {
-      x: PAD_LEFT + xValue * plotW,
-      y: PAD_TOP + plotH - yValue * plotH,
-    };
-  }
-
-  function hitTestBezierHandle(cssX, cssY) {
-    for (let i = bezierPoints.length - 1; i >= 0; i -= 1) {
-      const point = bezierPoints[i];
-      const handles = [];
-      if (i > 0 && (point.inX !== point.x || point.inY !== point.y)) {
-        handles.push('in');
-      }
-      if (i < bezierPoints.length - 1 && (point.outX !== point.x || point.outY !== point.y)) {
-        handles.push('out');
-      }
-
-      for (const handle of handles) {
-        const center = bezierHandleCenter(i, handle);
-        if (!center) continue;
-        const dx = cssX - center.x;
-        const dy = cssY - center.y;
-        if (Math.sqrt(dx * dx + dy * dy) <= HANDLE_RADIUS + 1) {
-          return { index: i, handle };
-        }
-      }
-    }
-
-    return null;
   }
 
   function addBezierPoint() {
     if (!canAddBezierPoint) return;
-
-    let targetIndex = 0;
-    let maxGap = -1;
-    for (let i = 0; i < bezierPoints.length - 1; i += 1) {
-      const gap = bezierPoints[i + 1].x - bezierPoints[i].x;
-      if (gap > maxGap) {
-        maxGap = gap;
-        targetIndex = i;
-      }
-    }
-
-    const left = bezierPoints[targetIndex];
-    const right = bezierPoints[targetIndex + 1];
-    const newPoint = {
-      x: Math.round(((left.x + right.x) / 2) * 100) / 100,
-      y: Math.round(((left.y + right.y) / 2) * 100) / 100,
-      inX: Math.round(((left.x * 0.66 + right.x * 0.34)) * 100) / 100,
-      inY: Math.round(((left.y * 0.66 + right.y * 0.34)) * 100) / 100,
-      outX: Math.round(((left.x * 0.34 + right.x * 0.66)) * 100) / 100,
-      outY: Math.round(((left.y * 0.34 + right.y * 0.66)) * 100) / 100,
-      handleMode: HANDLE_MODE.BROKEN,
-    };
-
-    const next = [...bezierPoints];
-    next.splice(targetIndex + 1, 0, newPoint);
-    updateBezierPoints(next);
-    selectedBezierPoint = targetIndex + 1;
+    const { points, index } = addBezierPointInWidestGap(currentBezierPoints());
+    updateBezierPoints(points);
+    selectedBezierPoint = index;
   }
 
   function removeBezierPoint() {
     if (!canRemoveBezierPoint) return;
 
-    const isRemovableSelection = isRemovableBezierPoint(selectedBezierPoint);
-    const removeIndex = isRemovableSelection ? selectedBezierPoint : bezierPoints.length - 2;
+    // Fall back to the last interior point when nothing removable is selected.
+    const removeIndex = isRemovableBezierPoint(currentBezierPoints(), selectedBezierPoint)
+      ? selectedBezierPoint
+      : bezierPoints.length - 2;
 
-    const next = [...bezierPoints];
-    next.splice(removeIndex, 1);
-    updateBezierPoints(next);
+    updateBezierPoints(removeBezierPointAt(currentBezierPoints(), removeIndex));
     selectedBezierPoint = null;
     selectedBezierHandle = null;
   }
@@ -217,61 +147,23 @@
   }
 
   function valueFromCurveX(cssX) {
-    const { plotW } = currentLayout();
-    return Math.min(1, Math.max(0, (cssX - PAD_LEFT) / plotW));
+    return valueFromCanvasX(cssX, currentLayout().plotW);
   }
 
   function valueFromCurveY(cssY) {
-    const { plotH } = currentLayout();
-    return Math.min(1, Math.max(0, (PAD_TOP + plotH - cssY) / plotH));
+    return valueFromCanvasY(cssY, currentLayout().plotH);
   }
 
-  function isInsidePlotArea(cssX, cssY) {
-    const { plotW, plotH } = currentLayout();
-    return cssX >= PAD_LEFT
-      && cssX <= PAD_LEFT + plotW
-      && cssY >= PAD_TOP
-      && cssY <= PAD_TOP + plotH;
-  }
+  function insertBezierPointAtPosition(cssX, cssY) {
+    const layout = currentLayout();
+    if (!canAddBezierPoint || !isInsidePlotArea(cssX, cssY, layout.plotW, layout.plotH)) return null;
 
-  function insertBezierPointAt(cssX, cssY) {
-    if (!canAddBezierPoint || !isInsidePlotArea(cssX, cssY)) return null;
+    const result = insertBezierPointAt(currentBezierPoints(), cssX, cssY, layout);
+    if (!result) return null;
 
-    const rawX = valueFromCurveX(cssX);
-    const rawY = valueFromCurveY(cssY);
-    let insertIndex = bezierPoints.findIndex((point) => point.x > rawX);
-
-    if (insertIndex <= 0) {
-      insertIndex = 1;
-    } else if (insertIndex === -1) {
-      insertIndex = bezierPoints.length - 1;
-    }
-
-    const prevX = bezierPoints[insertIndex - 1].x;
-    const nextX = bezierPoints[insertIndex].x;
-    const minX = prevX + 0.01;
-    const maxX = nextX - 0.01;
-    if (minX > maxX) return null;
-
-    let x = Math.min(maxX, Math.max(minX, rawX));
-    x = Math.round(x * 100) / 100;
-    x = Math.min(maxX, Math.max(minX, x));
-
-    const y = Math.round(rawY * 100) / 100;
-
-    const next = [...bezierPoints];
-    next.splice(insertIndex, 0, {
-      x,
-      y,
-      inX: Math.round((prevX + x) * 50) / 100,
-      inY: y,
-      outX: Math.round((x + nextX) * 50) / 100,
-      outY: y,
-      handleMode: HANDLE_MODE.BROKEN,
-    });
-    updateBezierPoints(next);
-    selectedBezierPoint = insertIndex;
-    return insertIndex;
+    updateBezierPoints(result.points);
+    selectedBezierPoint = result.index;
+    return result.index;
   }
 
   function openBezierContextMenu(event) {
@@ -286,10 +178,10 @@
     const rect = curveCanvasEl.getBoundingClientRect();
     const cssX = event.clientX - rect.left;
     const cssY = event.clientY - rect.top;
-    const hitIndex = hitTestBezierPoint(cssX, cssY);
+    const hitIndex = hitTestBezierPoint(currentBezierPoints(), cssX, cssY, currentLayout());
     const insidePlot = isInsidePlotArea(cssX, cssY);
     const canAddAtLocation = canAddBezierPoint && insidePlot;
-    const canRemoveAtPoint = isRemovableBezierPoint(hitIndex);
+    const canRemoveAtPoint = isRemovableBezierPoint(bezierPoints, hitIndex);
 
     if (!canAddAtLocation && !canRemoveAtPoint) {
       closeMenus();
@@ -321,7 +213,7 @@
     const { plotW, plotH } = currentLayout();
     const cssX = PAD_LEFT + bezierContextValueX * plotW;
     const cssY = PAD_TOP + plotH - bezierContextValueY * plotH;
-    const insertedIndex = insertBezierPointAt(cssX, cssY);
+    const insertedIndex = insertBezierPointAtPosition(cssX, cssY);
     if (insertedIndex !== null) {
       selectedBezierPoint = insertedIndex;
     }
@@ -333,7 +225,7 @@
     event.preventDefault();
     event.stopPropagation();
 
-    if (!isRemovableBezierPoint(bezierContextPointIndex)) {
+    if (!isRemovableBezierPoint(bezierPoints, bezierContextPointIndex)) {
       closeMenus();
       return;
     }
@@ -347,18 +239,12 @@
     event.preventDefault();
     event.stopPropagation();
 
-    if (!isRemovableBezierPoint(bezierContextPointIndex)) {
+    if (!isRemovableBezierPoint(bezierPoints, bezierContextPointIndex)) {
       closeMenus();
       return;
     }
 
-    const next = [...bezierPoints];
-    next[bezierContextPointIndex] = {
-      ...next[bezierContextPointIndex],
-      handleMode: mode === HANDLE_MODE.MIRRORED ? HANDLE_MODE.MIRRORED : HANDLE_MODE.BROKEN,
-    };
-
-    updateBezierPoints(next);
+    updateBezierPoints(setBezierHandleMode(currentBezierPoints(), bezierContextPointIndex, mode));
     closeMenus();
   }
 
@@ -427,7 +313,7 @@
     const cssY = event.clientY - rect.top;
 
     if (bezierActive) {
-      const hitHandle = hitTestBezierHandle(cssX, cssY);
+      const hitHandle = hitTestBezierHandle(currentBezierPoints(), cssX, cssY, currentLayout());
       if (hitHandle) {
         selectedBezierPoint = hitHandle.index;
         selectedBezierHandle = hitHandle.handle;
@@ -438,7 +324,7 @@
         return;
       }
 
-      const hitIndex = hitTestBezierPoint(cssX, cssY);
+      const hitIndex = hitTestBezierPoint(currentBezierPoints(), cssX, cssY, currentLayout());
       if (hitIndex === null) {
         selectedBezierPoint = null;
         selectedBezierHandle = null;
@@ -508,37 +394,11 @@
 
     if (draggingNode?.type === 'bezier-handle') {
       const pointIndex = draggingNode.index;
-      const handle = draggingNode.handle;
       if (pointIndex === null || pointIndex >= bezierPoints.length) return;
 
-      const next = [...bezierPoints];
-      const point = next[pointIndex];
-      const xVal = Math.round(valueFromCurveX(cssX) * 100) / 100;
-      const yVal = Math.round(valueFromCurveY(cssY) * 100) / 100;
-      const prevX = pointIndex > 0 ? next[pointIndex - 1].x : point.x;
-      const nextX = pointIndex < next.length - 1 ? next[pointIndex + 1].x : point.x;
-
-      const clampInX = (value) => Math.max(prevX, Math.min(point.x, value));
-      const clampOutX = (value) => Math.max(point.x, Math.min(nextX, value));
-
-      if (handle === 'in') {
-        point.inX = clampInX(xVal);
-        point.inY = yVal;
-        if (point.handleMode === HANDLE_MODE.MIRRORED && pointIndex > 0 && pointIndex < next.length - 1) {
-          point.outX = clampOutX(point.x + (point.x - point.inX));
-          point.outY = Math.min(1, Math.max(0, point.y + (point.y - point.inY)));
-        }
-      } else {
-        point.outX = clampOutX(xVal);
-        point.outY = yVal;
-        if (point.handleMode === HANDLE_MODE.MIRRORED && pointIndex > 0 && pointIndex < next.length - 1) {
-          point.inX = clampInX(point.x - (point.outX - point.x));
-          point.inY = Math.min(1, Math.max(0, point.y - (point.outY - point.y)));
-        }
-      }
-
-      next[pointIndex] = point;
-      updateBezierPoints(next);
+      updateBezierPoints(moveBezierHandle(
+        currentBezierPoints(), pointIndex, draggingNode.handle, cssX, cssY, currentLayout(),
+      ));
       drawCurveCanvas();
       return;
     }
@@ -568,9 +428,9 @@
     }
 
     if (bezierActive) {
-      if (hitTestBezierHandle(cssX, cssY)) {
+      if (hitTestBezierHandle(currentBezierPoints(), cssX, cssY, currentLayout())) {
         curveCanvasEl.style.cursor = 'crosshair';
-      } else if (hitTestBezierPoint(cssX, cssY) !== null) {
+      } else if (hitTestBezierPoint(currentBezierPoints(), cssX, cssY, currentLayout()) !== null) {
         curveCanvasEl.style.cursor = 'move';
       } else {
         curveCanvasEl.style.cursor = 'default';
@@ -750,7 +610,7 @@
         class="canvas-context-menu"
         style={`left: ${bezierContextMenuX}px; top: ${bezierContextMenuY}px;`}
       >
-        {#if isRemovableBezierPoint(bezierContextPointIndex)}
+        {#if isRemovableBezierPoint(bezierPoints, bezierContextPointIndex)}
           <button
             type="button"
             disabled={bezierPoints[bezierContextPointIndex].handleMode === HANDLE_MODE.MIRRORED}

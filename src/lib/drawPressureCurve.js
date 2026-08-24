@@ -37,6 +37,22 @@ export function toCanvasY(y, plotH) {
   return PAD_TOP + plotH - y * plotH;
 }
 
+/** Canvas space back to data space, clamped to the unit range. */
+export function valueFromCanvasX(cssX, plotW) {
+  return Math.min(1, Math.max(0, (cssX - PAD_LEFT) / plotW));
+}
+
+export function valueFromCanvasY(cssY, plotH) {
+  return Math.min(1, Math.max(0, (PAD_TOP + plotH - cssY) / plotH));
+}
+
+export function isInsidePlotArea(cssX, cssY, plotW, plotH) {
+  return cssX >= PAD_LEFT
+    && cssX <= PAD_LEFT + plotW
+    && cssY >= PAD_TOP
+    && cssY <= PAD_TOP + plotH;
+}
+
 function strokeSegment(ctx, points) {
   ctx.strokeStyle = CURVE_COLOR;
   ctx.beginPath();
