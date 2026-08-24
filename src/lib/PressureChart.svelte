@@ -6,7 +6,7 @@
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
   import { drawBackground, drawGrid as drawCanvasGrid, drawLabels as drawCanvasLabels, drawIndicator } from './canvasUtils';
   import { RAW_INDICATOR, EFFECTIVE_INDICATOR } from './indicatorStyles';
-  import { timestampedFileName } from './fileNames';
+  import { copyPngToClipboard, downloadCanvas, flattenOntoWhite } from './canvasExport';
   import PressureChartFormat from './PressureChartFormat.svelte';
   import PressureCurveControls from './PressureCurveControls.svelte';
 
@@ -870,50 +870,17 @@
     return tempCanvas;
   }
 
-  function canvasToJpegCanvas(sourceCanvas) {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = sourceCanvas.width;
-    tempCanvas.height = sourceCanvas.height;
-
-    const tempContext = tempCanvas.getContext('2d');
-    tempContext.fillStyle = '#ffffff';
-    tempContext.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    tempContext.drawImage(sourceCanvas, 0, 0);
-
-    return tempCanvas;
-  }
-
   async function copyChart(region) {
-    const sourceCanvas = buildChartCanvas(region);
-
-    sourceCanvas.toBlob(async (blob) => {
-      if (!blob) return;
-
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        const previousLabel = copyButtonLabel;
-        copyButtonLabel = 'Copied!';
-        setTimeout(() => {
-          copyButtonLabel = previousLabel;
-        }, 1500);
-      } catch (error) {
-        console.error('Clipboard write failed:', error);
-        copyButtonLabel = 'Failed';
-        setTimeout(() => {
-          copyButtonLabel = 'Copy ▾';
-        }, 1500);
-      }
-    }, 'image/png');
+    const ok = await copyPngToClipboard(flattenOntoWhite(buildChartCanvas(region)));
+    copyButtonLabel = ok ? 'Copied!' : 'Failed';
+    setTimeout(() => {
+      copyButtonLabel = 'Copy ▾';
+    }, 1500);
   }
 
   function saveChart(region) {
-    const sourceCanvas = canvasToJpegCanvas(buildChartCanvas(region));
     const baseName = region === 'full' ? 'pressure-curve-full' : 'pressure-curve-plot';
-
-    const link = document.createElement('a');
-    link.download = timestampedFileName(baseName, 'jpg');
-    link.href = sourceCanvas.toDataURL('image/jpeg', 0.95);
-    link.click();
+    downloadCanvas(flattenOntoWhite(buildChartCanvas(region)), baseName, 'image/png');
   }
 
   function handleCopyAction(region) {

@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
-  import { timestampedFileName } from './fileNames';
+  import { copyPngToClipboard, downloadCanvas } from './canvasExport';
   import { createPressureProcessor, readPointerSample, clearPointerSample, EMPTY_POINTER_INFO } from './pressurePipeline';
 
   const CANVAS_BG = '#f5f5f0';
@@ -208,22 +208,12 @@
       clearPointerSample(processor));
   }
 
-  async function copyCanvas(canvasEl) {
-    canvasEl.toBlob(async (blob) => {
-      if (!blob) return;
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      } catch (error) {
-        console.error('Clipboard write failed:', error);
-      }
-    }, 'image/png');
+  function copyCanvas(canvasEl) {
+    copyPngToClipboard(canvasEl);
   }
 
   function saveCanvas(canvasEl, baseName) {
-    const link = document.createElement('a');
-    link.download = timestampedFileName(baseName, 'png');
-    link.href = canvasEl.toDataURL('image/png');
-    link.click();
+    downloadCanvas(canvasEl, baseName, 'image/png');
   }
 
   function onKeyDown(event) {
