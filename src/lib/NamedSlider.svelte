@@ -138,7 +138,12 @@
         use:autofocus
       >
     {:else}
-      <span class="param-value" on:click={startEdit}>{formatValue(value)}</span>
+      <button
+        type="button"
+        class="param-value param-value-button"
+        title="Click to type an exact value"
+        on:click={startEdit}
+      >{formatValue(value)}</button>
     {/if}
   </div>
   <input
@@ -154,6 +159,11 @@
 </div>
 
 {#if contextMenuOpen}
+  <!-- The handler only stops the document listener from closing the menu; the
+     div is not a control and the buttons inside are already focusable. Same
+     shape as the Chart Format popover. -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="slider-context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px;"

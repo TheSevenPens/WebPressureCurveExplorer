@@ -45,6 +45,18 @@
     localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(userPresets));
   }
 
+  function closeSaveDialog() {
+    showSaveInput = false;
+    savePresetName = '';
+  }
+
+  function handleSaveDialogKeyDown(event) {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      closeSaveDialog();
+    }
+  }
+
   function savePreset() {
     const name = savePresetName.trim();
     if (!name) return;
@@ -310,19 +322,30 @@
       <button type="button" class="small-action-btn" on:click={() => showSaveInput = true}>Save settings</button>
 
       {#if showSaveInput}
-        <div class="preset-dialog-overlay" on:click|self={() => { showSaveInput = false; savePresetName = ''; }}>
-          <div class="preset-dialog">
-            <div class="preset-dialog-title">Save preset</div>
+        <!-- A backdrop has no keyboard equivalent; Escape on the dialog is the
+             keyboard route out, handled below. -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="preset-dialog-overlay" on:click|self={closeSaveDialog}>
+          <div
+            class="preset-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="preset-dialog-title"
+            tabindex="-1"
+            on:keydown={handleSaveDialogKeyDown}
+          >
+            <div class="preset-dialog-title" id="preset-dialog-title">Save preset</div>
             <input
               type="text"
               class="preset-name-input"
               placeholder="Preset name"
               bind:value={savePresetName}
-              on:keydown={(e) => { if (e.key === 'Enter') savePreset(); if (e.key === 'Escape') { showSaveInput = false; savePresetName = ''; } }}
+              on:keydown={(e) => { if (e.key === 'Enter') savePreset(); }}
             />
             <div class="preset-dialog-buttons">
               <button type="button" class="small-action-btn" on:click={savePreset}>Save</button>
-              <button type="button" class="small-action-btn" on:click={() => { showSaveInput = false; savePresetName = ''; }}>Cancel</button>
+              <button type="button" class="small-action-btn" on:click={closeSaveDialog}>Cancel</button>
             </div>
           </div>
         </div>
