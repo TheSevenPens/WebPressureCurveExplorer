@@ -40,8 +40,10 @@
   let rawCtx;
   let resizeObserver;
   let resizeRafId = 0;
-  let lastDeviceWidth = 0;
-  let lastDeviceHeight = 0;
+  let lastBackingWidth = 0;
+  let lastBackingHeight = 0;
+  // Exact device-pixel content box per canvas, reported by ResizeObserver.
+  const devicePixelBoxes = new WeakMap();
   let isDrawing = false;
   let lastPos = null;
   let smoothedPressure = null;
@@ -112,11 +114,9 @@
 
   function pointerToCanvasPos(pointerEvent, canvasEl) {
     const rect = canvasEl.getBoundingClientRect();
-    const scaleX = rect.width > 0 ? canvasEl.width / rect.width : 1;
-    const scaleY = rect.height > 0 ? canvasEl.height / rect.height : 1;
     return {
-      x: (pointerEvent.clientX - rect.left) * scaleX,
-      y: (pointerEvent.clientY - rect.top) * scaleY,
+      x: pointerEvent.clientX - rect.left,
+      y: pointerEvent.clientY - rect.top,
     };
   }
 
@@ -149,34 +149,58 @@
     });
   }
 
+  // Size of the canvas backing store in real screen pixels. ResizeObserver's
+  // device-pixel content box is exact; the getBoundingClientRect fallback is
+  // for browsers that do not report it.
+  function backingSizeFor(canvasEl) {
+    const exact = devicePixelBoxes.get(canvasEl);
+    if (exact && exact.width > 0 && exact.height > 0) return exact;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvasEl.getBoundingClientRect();
+    return {
+      width: Math.max(1, Math.round(rect.width * dpr)),
+      height: Math.max(1, Math.round(rect.height * dpr)),
+    };
+  }
+
   function resizeDrawCanvases() {
-    if (!processedCanvasEl || !processedCtx || !rawCanvasEl || !rawCtx || !drawPanelEl || !toolbarEl) return;
+    if (!processedCanvasEl || !processedCtx || !rawCanvasEl || !rawCtx || !drawPanelEl) return;
 
-    const cssWidth = Math.max(1, drawPanelEl.clientWidth);
-    const canvasHeight = Math.max(1, processedCanvasEl.clientHeight);
+    const { width: backingWidth, height: backingHeight } = backingSizeFor(processedCanvasEl);
 
-    if (cssWidth === lastDeviceWidth && canvasHeight === lastDeviceHeight) {
+    if (backingWidth === lastBackingWidth && backingHeight === lastBackingHeight && processedCanvasEl.width > 0) {
       return;
     }
 
-    lastDeviceWidth = cssWidth;
-    lastDeviceHeight = canvasHeight;
+    lastBackingWidth = backingWidth;
+    lastBackingHeight = backingHeight;
 
-    for (const canvasEl of [processedCanvasEl, rawCanvasEl]) {
-      canvasEl.width = cssWidth;
-      canvasEl.height = canvasHeight;
+    // Draw in CSS pixels while the backing store holds one texel per screen
+    // pixel, so strokes are rasterised at full display resolution instead of
+    // being upscaled by the compositor.
+    for (const [ctx, canvasEl] of [[processedCtx, processedCanvasEl], [rawCtx, rawCanvasEl]]) {
+      const rect = canvasEl.getBoundingClientRect();
+      canvasEl.width = backingWidth;
+      canvasEl.height = backingHeight;
+      ctx.setTransform(
+        rect.width > 0 ? backingWidth / rect.width : 1, 0,
+        0, rect.height > 0 ? backingHeight / rect.height : 1,
+        0, 0,
+      );
     }
 
-    processedCtx.setTransform(1, 0, 0, 1, 0, 0);
-    rawCtx.setTransform(1, 0, 0, 1, 0, 0);
     clearDrawCanvases();
   }
 
   function clearDrawCanvases() {
     for (const [ctx, canvasEl] of [[processedCtx, processedCanvasEl], [rawCtx, rawCanvasEl]]) {
       if (!ctx || !canvasEl) continue;
+      const transform = ctx.getTransform();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = CANVAS_BG;
       ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+      ctx.setTransform(transform);
     }
   }
 
@@ -293,8 +317,23 @@
     rawCtx = rawCanvasEl.getContext('2d');
     scheduleResize();
 
-    resizeObserver = new ResizeObserver(scheduleResize);
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const box = entry.devicePixelContentBoxSize?.[0];
+        if (box) {
+          devicePixelBoxes.set(entry.target, { width: box.inlineSize, height: box.blockSize });
+        }
+      }
+      scheduleResize();
+    });
     resizeObserver.observe(drawPanelEl);
+    for (const canvasEl of [processedCanvasEl, rawCanvasEl]) {
+      try {
+        resizeObserver.observe(canvasEl, { box: 'device-pixel-content-box' });
+      } catch {
+        resizeObserver.observe(canvasEl);
+      }
+    }
 
     window.addEventListener('resize', scheduleResize);
     document.addEventListener('keydown', onKeyDown);
