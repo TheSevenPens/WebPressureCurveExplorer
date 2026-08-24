@@ -17,6 +17,10 @@ export const EMPTY_POINTER_INFO = Object.freeze({
 // Holds the EMA state for one input surface. Each view that accepts pen input
 // makes its own, so switching views starts from a clean smoothing state
 // instead of carrying a stale value across.
+/**
+ * Holds the EMA state for one input surface.
+ * @returns {{ reset(): void, process(rawPressure: number, params: import('./curveTypes').Params): object }}
+ */
 export function createPressureProcessor() {
   let smoothedPressure = null;
 
