@@ -27,7 +27,10 @@
     info = buildPointerInfo(event, rawPressure, processed);
   }
 
-  function handlePointerLeave() {
+  // pointerleave alone is not enough: lifting the pen while still over the
+  // pane fires pointerup, which would otherwise leave the indicators parked at
+  // the last contact pressure.
+  function handlePointerEnd() {
     processor.reset();
     liveRawPressure = null;
     livePressure = null;
@@ -43,7 +46,9 @@
   class="response-view"
   on:pointermove={handlePointer}
   on:pointerdown={handlePointer}
-  on:pointerleave={handlePointerLeave}
+  on:pointerup={handlePointerEnd}
+  on:pointercancel={handlePointerEnd}
+  on:pointerleave={handlePointerEnd}
 >
   {#if data}
     <PressureResponseChart

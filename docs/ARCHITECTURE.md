@@ -187,50 +187,44 @@ App.svelte (params, live*, leftPanelsCollapsed, viewMode,
   |
   |-- bind:params --> PressureChart --> PressureCurveControls (sliders modify params)
   |
-  |-- params (read) --> ViewPanel
+  |-- viewMode + onViewModeChange --> PressureChart (hosts the view switch)
+  |
+  |-- viewMode (read) --> ViewPanel
   |     |-- DrawingCanvas          (canvas view)
   |     |-- PressureResponseView   (response view)
   |     |
   |     |-- bind:live* --> App     (whichever view is active writes them)
-  |     |-- bind:viewMode --> App
-  |     |-- onToggleLeftPanels --> App
   |     |-- onResponseDataChange --> App
+  |
+  |-- .panel-rail (in App) toggles leftPanelsCollapsed
 ```
 
 Components update params via `patchParams({ key: value })` which spreads into a new object, triggering Svelte reactivity. The chart re-renders whenever params, live pressure values, or display toggles change.
 
 ## Data flow
 
+The component wiring is above; this is what happens to a pointer event. Only the
+active view produces these, since the hidden one receives no events.
+
 ```
-+---------------------------------------------------------+
-|  App.svelte                                             |
-|  State: params, livePressure, liveRawPressure,          |
-|         leftPanelsCollapsed                             |
-+----------------+------------------+---------------------+
-                 | bind:params      | params (read)
-                 | livePressure     | bind:livePressure
-                 | liveRawPressure  | bind:liveRawPressure
-                 v                  v
-  +----------------------------+  +-----------------------+
-  |  PressureChart             |  |  DrawingCanvas        |
-  |  State: pressureResponse   |  |  (pointer input)      |
-  |         showCurveEffect    |  |                       |
-  |                            |  |  Raw pressure         |
-  |  +----------------+        |  |    v curve + EMA, in  |
-  |  |ChartFormat     |        |  |      smoothingOrder   |
-  |  +----------------+        |  |      (see below)      |
-  |  +----------------+        |  |    v brush size       |
-  |  |ResponseChart   |<-data--+  |                       |
-  |  |  params        |<-parm--+  |  livePressure ------> |
-  |  |  showEffect    |<-bool--+  |  liveRawPressure ---> |
-  |  +----------------+        |  |  onToggleLeftPanels-> |
-  |  +----------------+        |  +-----------------------+
-  |  |CurveControls   |        |
-  |  | + SmoothingCtrl|        |
-  |  | + NamedSliders |        |
-  |  | + ResponsePanel|--cb--->| (data + showEffect callbacks)
-  |  +----------------+        |
-  +----------------------------+
+pointer event on the active view
+  (DrawingCanvas or PressureResponseView)
+        |
+        v
+  processor.process(rawPressure, params)      [pressurePipeline.js]
+        |
+        +--> info ................> PenDataToolbar        (readouts)
+        |
+        +--> liveRawPressure .....> App --> PressureChart (purple indicator)
+        |                               --> PressureResponseChart
+        |
+        +--> livePressure ........> App --> PressureChart (effective indicator X,
+        |                                                  under smooth-then-curve)
+        |
+        +--> liveOutputPressure ..> App --> PressureChart (effective indicator Y)
+        |                               --> PressureResponseChart
+        |
+        +--> outputPressure ......> brush size or opacity (canvas view only)
 ```
 
 ## Data model

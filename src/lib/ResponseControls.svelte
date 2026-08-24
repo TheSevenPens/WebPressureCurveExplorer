@@ -15,7 +15,11 @@
   ];
 
   let fileInputEl;
-  let selectedSampleIndex = -1;
+
+  // Derived from the loaded data rather than held locally: this toolbar is
+  // recreated on every view switch, so local state would come back as -1 and
+  // read "Select data" while the chart still showed the loaded sample.
+  $: selectedSampleIndex = SAMPLES.findIndex((sample) => sample.data === data);
 
   function handleSelectChange(event) {
     const value = event.currentTarget.value;
@@ -25,7 +29,6 @@
       return;
     }
     const index = parseInt(value, 10);
-    selectedSampleIndex = index;
     if (isNaN(index) || index < 0) {
       clearData();
       return;
@@ -34,7 +37,6 @@
   }
 
   function clearData() {
-    selectedSampleIndex = -1;
     onDataChange(null);
   }
 
@@ -50,7 +52,6 @@
           alert('Invalid file: missing or empty "records" array.');
           return;
         }
-        selectedSampleIndex = -1;
         onDataChange(parsed);
       } catch {
         alert('Failed to parse JSON file.');

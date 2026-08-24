@@ -237,10 +237,25 @@
   }
 
   function onKeyDown(event) {
-    if (event.key === 'Delete' || event.key === 'Backspace') {
-      event.preventDefault();
-      clearDrawCanvases();
+    if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+
+    // Hidden behind the other view: the shortcut would silently wipe a drawing
+    // the user cannot even see.
+    if (!drawPanelEl || drawPanelEl.clientWidth === 0) return;
+
+    // Backspace belongs to whatever field has focus, such as NamedSlider's
+    // click-to-edit value.
+    const target = event.target;
+    if (target instanceof HTMLElement
+      && (target.isContentEditable
+        || target.tagName === 'INPUT'
+        || target.tagName === 'TEXTAREA'
+        || target.tagName === 'SELECT')) {
+      return;
     }
+
+    event.preventDefault();
+    clearDrawCanvases();
   }
 
   onMount(() => {
