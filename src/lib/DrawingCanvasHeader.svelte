@@ -16,7 +16,7 @@
 
 <div id="toolbar" bind:this={el}>
   <div class="toolbar-row toolbar-data">
-    <span class="info-item">Type: <span class="val">{info.type}</span></span>
+    <span class="info-item">Type: <span class="val type-val">{info.type}</span></span>
     {#if info.smoothingOrder === SMOOTHING_ORDER.CURVE_THEN_SMOOTH}
       <span class="info-item">
         Pressure: <span class="val mono">{info.pressureRaw}</span>
@@ -98,6 +98,15 @@
 
   .toolbar-controls {
     gap: 10px;
+  }
+
+  /* Reserve room for the longest pointerType ("mouse"/"touch") so switching
+     input devices does not shift everything to the right of it. .val is
+     monospace, so ch units size this exactly. */
+  .type-val {
+    display: inline-block;
+    min-width: 5ch;
+    text-align: left;
   }
 
   .mono {
