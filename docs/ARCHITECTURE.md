@@ -53,13 +53,13 @@ Six checkboxes controlling chart display: grid, labels, nodes, node guides, raw 
 
 ### PressureCurveControls.svelte
 The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Contains:
-- **Curve** (expanded by default): curve type dropdown with reset button, conditional controls per type:
+- **Curve (on/off)** (expanded by default): curve type dropdown with reset button, conditional controls per type:
   - **passthrough**: no controls
   - **flat**: height slider
   - **basic**: Curve Amount slider only (selecting it resets input/output ranges to 0–1 and min approach to clamp)
   - **extended/sigmoid**: Curve Amount slider, read-only node values table (driven by chart nodes), min approach radio buttons
   - **bezier**: preset dropdown, add/remove point buttons
-- **Smoothing**: Smoothing Amount slider
+- **Smoothing (on/off)**: Smoothing Amount slider
 - **Processing Order**: smooth-then-curve vs curve-then-smooth radio buttons (default: curve-then-smooth)
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
@@ -101,6 +101,8 @@ Toolbar showing pointer type, pressure flow values (raw -> intermediate -> outpu
 | `canvasUtils.js` | Shared canvas drawing: background, grid, axis labels, indicator dots |
 | `emaConstants.js` | EMA smoothing constants (max, midpoint target, curve exponent) |
 | `fileNames.js` | `timestampedFileName(base, ext)` for export downloads |
+
+The Curve and Smoothing card titles report whether that stage actually changes the pressure. Curve uses `isIdentityCurve` from curveMath, which samples the configured transform rather than reading `curveType`, so a neutral basic/extended/sigmoid curve (CurveAmount 0, full ranges) reads "off" just as passthrough does. Smoothing reads "off" when `emaSmoothing` is 0, where the EMA alpha is 1 and output equals input.
 
 ### curveMath.js
 
