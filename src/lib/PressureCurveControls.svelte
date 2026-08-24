@@ -7,6 +7,8 @@
   import PressureSmoothingControls from './PressureSmoothingControls.svelte';
   import SmoothingOrderControls from './SmoothingOrderControls.svelte';
   import CollapsibleSection from './CollapsibleSection.svelte';
+  import TypeSelectRow from './TypeSelectRow.svelte';
+  import UserPresetsSection from './UserPresetsSection.svelte';
 
   export let params;
   export let defaultParams;
@@ -23,62 +25,6 @@
   $: smoothingHasEffect = (params.smoothingType ?? SMOOTHING_TYPE.EMA) !== SMOOTHING_TYPE.PASSTHROUGH
     && Number(params.emaSmoothing ?? 0) > 0;
   $: onOff = (active) => (active ? 'on' : 'off');
-
-  const PRESETS_STORAGE_KEY = 'wpe-user-presets';
-
-  let userPresets = loadPresets();
-  let showSaveInput = false;
-  let savePresetName = '';
-  let pendingLoadPreset = null;
-
-  function loadPresets() {
-    try {
-      const stored = localStorage.getItem(PRESETS_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function persistPresets() {
-    localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(userPresets));
-  }
-
-  function savePreset() {
-    const name = savePresetName.trim();
-    if (!name) return;
-    const existing = userPresets.findIndex((p) => p.name === name);
-    const entry = { name, params: JSON.parse(JSON.stringify(params)) };
-    if (existing >= 0) {
-      userPresets[existing] = entry;
-    } else {
-      userPresets = [...userPresets, entry];
-    }
-    persistPresets();
-    showSaveInput = false;
-    savePresetName = '';
-  }
-
-  function confirmLoadPreset(name) {
-    pendingLoadPreset = name;
-  }
-
-  function applyLoadPreset() {
-    const preset = userPresets.find((p) => p.name === pendingLoadPreset);
-    if (preset) {
-      params = { ...preset.params };
-    }
-    pendingLoadPreset = null;
-  }
-
-  function cancelLoadPreset() {
-    pendingLoadPreset = null;
-  }
-
-  function deletePreset(name) {
-    userPresets = userPresets.filter((p) => p.name !== name);
-    persistPresets();
-  }
 
   function patchParams(nextValues) {
     params = { ...params, ...nextValues };
@@ -100,8 +46,16 @@
     patchParams({ [key]: value });
   }
 
-  function handleCurveTypeChange(event) {
-    const newType = event.currentTarget.value;
+  const CURVE_TYPE_OPTIONS = [
+    { value: CURVE_TYPE.PASSTHROUGH, label: 'Passthrough' },
+    { value: CURVE_TYPE.FLAT, label: 'Flat' },
+    { value: CURVE_TYPE.BASIC, label: 'Basic' },
+    { value: CURVE_TYPE.EXTENDED, label: 'Extended' },
+    { value: CURVE_TYPE.SIGMOID, label: 'Sigmoid' },
+    { value: CURVE_TYPE.BEZIER, label: 'Bezier' },
+  ];
+
+  function handleCurveTypeChange(newType) {
     const updates = { curveType: newType };
     if (newType === CURVE_TYPE.BASIC) {
       updates.inputMinimum = 0;
@@ -153,19 +107,14 @@
 <div id="details-panel">
   <div id="details-controls">
     <CollapsibleSection title="Curve ({onOff(curveHasEffect)})" open={true}>
-    <div class="type-row">
-      <select value={params.curveType} on:change={handleCurveTypeChange}>
-        <option value={CURVE_TYPE.PASSTHROUGH}>Passthrough</option>
-        <option value={CURVE_TYPE.FLAT}>Flat</option>
-        <option value={CURVE_TYPE.BASIC}>Basic</option>
-        <option value={CURVE_TYPE.EXTENDED}>Extended</option>
-        <option value={CURVE_TYPE.SIGMOID}>Sigmoid</option>
-        <option value={CURVE_TYPE.BEZIER}>Bezier</option>
-      </select>
-      {#if params.curveType !== CURVE_TYPE.PASSTHROUGH}
-        <button class="btn-reset" on:click={resetToDefaults}>↺</button>
-      {/if}
-    </div>
+    <TypeSelectRow
+      value={params.curveType}
+      options={CURVE_TYPE_OPTIONS}
+      onChange={handleCurveTypeChange}
+      onReset={resetToDefaults}
+      resetHiddenFor={CURVE_TYPE.PASSTHROUGH}
+      resetTitle="Reset curve to defaults"
+    />
 
     {#if bezierActive}
       <div class="param">
@@ -278,51 +227,7 @@
     </CollapsibleSection>
 
     <CollapsibleSection title="Presets" open={false}>
-      {#if pendingLoadPreset}
-        <div class="preset-confirm">
-          Load "{pendingLoadPreset}"? This will replace all current settings.
-          <div class="preset-confirm-buttons">
-            <button type="button" class="small-action-btn" on:click={applyLoadPreset}>Yes</button>
-            <button type="button" class="small-action-btn" on:click={cancelLoadPreset}>Cancel</button>
-          </div>
-        </div>
-      {/if}
-
-      {#if userPresets.length > 0}
-        <div class="preset-list">
-          {#each userPresets as preset}
-            <div class="preset-item">
-              <button type="button" class="preset-load-btn" on:click={() => confirmLoadPreset(preset.name)}>
-                {preset.name}
-              </button>
-              <button type="button" class="preset-delete-btn" on:click={() => deletePreset(preset.name)}>✕</button>
-            </div>
-          {/each}
-        </div>
-      {:else}
-        <div class="preset-empty">No saved presets</div>
-      {/if}
-
-      <button type="button" class="small-action-btn" on:click={() => showSaveInput = true}>Save settings</button>
-
-      {#if showSaveInput}
-        <div class="preset-dialog-overlay" on:click|self={() => { showSaveInput = false; savePresetName = ''; }}>
-          <div class="preset-dialog">
-            <div class="preset-dialog-title">Save preset</div>
-            <input
-              type="text"
-              class="preset-name-input"
-              placeholder="Preset name"
-              bind:value={savePresetName}
-              on:keydown={(e) => { if (e.key === 'Enter') savePreset(); if (e.key === 'Escape') { showSaveInput = false; savePresetName = ''; } }}
-            />
-            <div class="preset-dialog-buttons">
-              <button type="button" class="small-action-btn" on:click={savePreset}>Save</button>
-              <button type="button" class="small-action-btn" on:click={() => { showSaveInput = false; savePresetName = ''; }}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      {/if}
+      <UserPresetsSection bind:params />
     </CollapsibleSection>
   </div>
 </div>

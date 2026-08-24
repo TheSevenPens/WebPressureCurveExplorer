@@ -10,7 +10,7 @@
   export let onPressureControlsChange = () => {};
 </script>
 
-<button id="btn-clear" on:click={onClear}>Clear</button>
+<button class="btn-clear" type="button" on:click={onClear}>Clear</button>
 <span class="info-item">
   Color:
   <select class="toolbar-select" value={colorMode} on:change={(e) => onColorModeChange(e.currentTarget.value)}>

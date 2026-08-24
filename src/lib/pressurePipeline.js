@@ -17,6 +17,10 @@ export const EMPTY_POINTER_INFO = Object.freeze({
 // Holds the EMA state for one input surface. Each view that accepts pen input
 // makes its own, so switching views starts from a clean smoothing state
 // instead of carrying a stale value across.
+/**
+ * Holds the EMA state for one input surface.
+ * @returns {{ reset(): void, process(rawPressure: number, params: import('./curveTypes').Params): object }}
+ */
 export function createPressureProcessor() {
   let smoothedPressure = null;
 
@@ -86,5 +90,35 @@ export function buildPointerInfo(pointerEvent, rawPressure, processed) {
     tiltY: `${Number(pointerEvent.tiltY ?? 0).toFixed(1)}°`,
     azimuth: `${toDegrees(Number(pointerEvent.azimuthAngle ?? 0))}°`,
     altitude: `${toDegrees(Number(pointerEvent.altitudeAngle ?? 0))}°`,
+  };
+}
+
+/**
+ * One pointer sample turned into everything the live indicators and readouts
+ * need. Both input surfaces do exactly this, so they share it rather than
+ * each assigning the same four fields.
+ */
+export function readPointerSample(processor, event, params) {
+  const rawPressure = Number(event.pressure ?? 0);
+  const processed = processor.process(rawPressure, params);
+
+  return {
+    liveRawPressure: rawPressure,
+    livePressure: processed.preCurvePressure,
+    liveOutputPressure: processed.outputPressure,
+    info: buildPointerInfo(event, rawPressure, processed),
+    processed,
+  };
+}
+
+/** The idle counterpart, for when the pointer lifts or leaves. */
+export function clearPointerSample(processor) {
+  processor.reset();
+
+  return {
+    liveRawPressure: null,
+    livePressure: null,
+    liveOutputPressure: null,
+    info: { ...EMPTY_POINTER_INFO },
   };
 }

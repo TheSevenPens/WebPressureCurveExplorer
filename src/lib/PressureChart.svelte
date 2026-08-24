@@ -5,19 +5,17 @@
   import { MIN_APPROACH, HANDLE_MODE, SMOOTHING_ORDER, VIEW_MODE } from './uiConstants';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
   import { drawBackground, drawGrid as drawCanvasGrid, drawLabels as drawCanvasLabels, drawIndicator } from './canvasUtils';
-  import { timestampedFileName } from './fileNames';
+  import { drawCurveChart, curveLayout, valueFromCanvasX, valueFromCanvasY, isInsidePlotArea } from './drawPressureCurve';
+  import {
+    NODE_HIT_RADIUS,
+    hitTestBezierPoint, hitTestBezierHandle, isRemovableBezierPoint,
+    addBezierPointInWidestGap, removeBezierPointAt, insertBezierPointAt,
+    moveBezierHandle, setBezierHandleMode,
+  } from './bezierInteraction';
+  import { copyPngToClipboard, downloadCanvas, flattenOntoWhite } from './canvasExport';
   import PressureChartFormat from './PressureChartFormat.svelte';
   import PressureCurveControls from './PressureCurveControls.svelte';
-  import CollapsibleSection from './CollapsibleSection.svelte';
 
-  const CURVE_COLOR = '#000000';
-  const MIN_CONTROL_NODE_COLOR = 'rgb(255, 0, 136)';
-  const MIN_CONTROL_NODE_GUIDE = 'rgba(0, 0, 0, 0.25)';
-  const MAX_CONTROL_NODE_COLOR = '#00d0ff';
-  const MAX_CONTROL_NODE_GUIDE = 'rgba(0, 0, 0, 0.25)';
-
-  const NODE_RADIUS = 8;
-  const HANDLE_RADIUS = 5;
 
   export let params;
   export let livePressure = null;
@@ -82,128 +80,50 @@
     params = { ...params, ...nextValues };
   }
 
-  function isRemovableBezierPoint(index) {
-    return index !== null && index > 0 && index < bezierPoints.length - 1;
+  /**
+   * Bezier points read straight from params rather than the `bezierPoints`
+   * reactive value, which can lag when several pointer events are handled in
+   * the same tick. Mutating from a stale copy silently discards the previous
+   * edit.
+   */
+  function currentBezierPoints() {
+    return normalizeBezierPoints(params.bezierPoints);
   }
 
   function updateBezierPoints(nextPoints) {
+    // Normalizing here as well as in the bezierInteraction helpers: the anchor
+    // drag below builds its points inline, and normalization is idempotent.
     patchParams({ bezierPoints: normalizeBezierPoints(nextPoints) });
-  }
-
-  function bezierPointCenter(index) {
-    const { plotW, plotH } = curveLayout();
-    const point = bezierPoints[index];
-    if (!point) return null;
-    return {
-      x: PAD_LEFT + point.x * plotW,
-      y: PAD_TOP + plotH - point.y * plotH,
-    };
-  }
-
-  function hitTestBezierPoint(cssX, cssY) {
-    for (let i = bezierPoints.length - 1; i >= 0; i -= 1) {
-      const center = bezierPointCenter(i);
-      if (!center) continue;
-      const dx = cssX - center.x;
-      const dy = cssY - center.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= NODE_RADIUS) return i;
-    }
-    return null;
-  }
-
-  function bezierHandleCenter(index, handle) {
-    const { plotW, plotH } = curveLayout();
-    const point = bezierPoints[index];
-    if (!point) return null;
-
-    const xValue = handle === 'in' ? point.inX : point.outX;
-    const yValue = handle === 'in' ? point.inY : point.outY;
-    return {
-      x: PAD_LEFT + xValue * plotW,
-      y: PAD_TOP + plotH - yValue * plotH,
-    };
-  }
-
-  function hitTestBezierHandle(cssX, cssY) {
-    for (let i = bezierPoints.length - 1; i >= 0; i -= 1) {
-      const point = bezierPoints[i];
-      const handles = [];
-      if (i > 0 && (point.inX !== point.x || point.inY !== point.y)) {
-        handles.push('in');
-      }
-      if (i < bezierPoints.length - 1 && (point.outX !== point.x || point.outY !== point.y)) {
-        handles.push('out');
-      }
-
-      for (const handle of handles) {
-        const center = bezierHandleCenter(i, handle);
-        if (!center) continue;
-        const dx = cssX - center.x;
-        const dy = cssY - center.y;
-        if (Math.sqrt(dx * dx + dy * dy) <= HANDLE_RADIUS + 1) {
-          return { index: i, handle };
-        }
-      }
-    }
-
-    return null;
   }
 
   function addBezierPoint() {
     if (!canAddBezierPoint) return;
-
-    let targetIndex = 0;
-    let maxGap = -1;
-    for (let i = 0; i < bezierPoints.length - 1; i += 1) {
-      const gap = bezierPoints[i + 1].x - bezierPoints[i].x;
-      if (gap > maxGap) {
-        maxGap = gap;
-        targetIndex = i;
-      }
-    }
-
-    const left = bezierPoints[targetIndex];
-    const right = bezierPoints[targetIndex + 1];
-    const newPoint = {
-      x: Math.round(((left.x + right.x) / 2) * 100) / 100,
-      y: Math.round(((left.y + right.y) / 2) * 100) / 100,
-      inX: Math.round(((left.x * 0.66 + right.x * 0.34)) * 100) / 100,
-      inY: Math.round(((left.y * 0.66 + right.y * 0.34)) * 100) / 100,
-      outX: Math.round(((left.x * 0.34 + right.x * 0.66)) * 100) / 100,
-      outY: Math.round(((left.y * 0.34 + right.y * 0.66)) * 100) / 100,
-      handleMode: HANDLE_MODE.BROKEN,
-    };
-
-    const next = [...bezierPoints];
-    next.splice(targetIndex + 1, 0, newPoint);
-    updateBezierPoints(next);
-    selectedBezierPoint = targetIndex + 1;
+    const { points, index } = addBezierPointInWidestGap(currentBezierPoints());
+    updateBezierPoints(points);
+    selectedBezierPoint = index;
   }
 
   function removeBezierPoint() {
     if (!canRemoveBezierPoint) return;
 
-    const isRemovableSelection = isRemovableBezierPoint(selectedBezierPoint);
-    const removeIndex = isRemovableSelection ? selectedBezierPoint : bezierPoints.length - 2;
+    // Fall back to the last interior point when nothing removable is selected.
+    const removeIndex = isRemovableBezierPoint(currentBezierPoints(), selectedBezierPoint)
+      ? selectedBezierPoint
+      : bezierPoints.length - 2;
 
-    const next = [...bezierPoints];
-    next.splice(removeIndex, 1);
-    updateBezierPoints(next);
+    updateBezierPoints(removeBezierPointAt(currentBezierPoints(), removeIndex));
     selectedBezierPoint = null;
     selectedBezierHandle = null;
   }
 
-  function curveLayout() {
-    const width = curveCanvasEl.width / curveDpr;
-    const height = curveCanvasEl.height / curveDpr;
-    return {
-      plotW: width - PAD_LEFT - PAD_RIGHT,
-      plotH: height - PAD_TOP - PAD_BOTTOM,
-    };
+  /** Plot geometry for the live canvas; shared with the drawing module so hit
+      testing and rendering cannot disagree about where the plot area is. */
+  function currentLayout() {
+    return curveLayout(curveCanvasEl.width / curveDpr, curveCanvasEl.height / curveDpr);
   }
 
   function nodeCenter(key) {
-    const { plotW, plotH } = curveLayout();
+    const { plotW, plotH } = currentLayout();
     if (key === 'a') {
       return {
         x: PAD_LEFT + params.inputMinimum * plotW,
@@ -221,67 +141,29 @@
       const center = nodeCenter(key);
       const dx = cssX - center.x;
       const dy = cssY - center.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= NODE_RADIUS) return key;
+      if (Math.sqrt(dx * dx + dy * dy) <= NODE_HIT_RADIUS) return key;
     }
     return null;
   }
 
   function valueFromCurveX(cssX) {
-    const { plotW } = curveLayout();
-    return Math.min(1, Math.max(0, (cssX - PAD_LEFT) / plotW));
+    return valueFromCanvasX(cssX, currentLayout().plotW);
   }
 
   function valueFromCurveY(cssY) {
-    const { plotH } = curveLayout();
-    return Math.min(1, Math.max(0, (PAD_TOP + plotH - cssY) / plotH));
+    return valueFromCanvasY(cssY, currentLayout().plotH);
   }
 
-  function isInsidePlotArea(cssX, cssY) {
-    const { plotW, plotH } = curveLayout();
-    return cssX >= PAD_LEFT
-      && cssX <= PAD_LEFT + plotW
-      && cssY >= PAD_TOP
-      && cssY <= PAD_TOP + plotH;
-  }
+  function insertBezierPointAtPosition(cssX, cssY) {
+    const layout = currentLayout();
+    if (!canAddBezierPoint || !isInsidePlotArea(cssX, cssY, layout.plotW, layout.plotH)) return null;
 
-  function insertBezierPointAt(cssX, cssY) {
-    if (!canAddBezierPoint || !isInsidePlotArea(cssX, cssY)) return null;
+    const result = insertBezierPointAt(currentBezierPoints(), cssX, cssY, layout);
+    if (!result) return null;
 
-    const rawX = valueFromCurveX(cssX);
-    const rawY = valueFromCurveY(cssY);
-    let insertIndex = bezierPoints.findIndex((point) => point.x > rawX);
-
-    if (insertIndex <= 0) {
-      insertIndex = 1;
-    } else if (insertIndex === -1) {
-      insertIndex = bezierPoints.length - 1;
-    }
-
-    const prevX = bezierPoints[insertIndex - 1].x;
-    const nextX = bezierPoints[insertIndex].x;
-    const minX = prevX + 0.01;
-    const maxX = nextX - 0.01;
-    if (minX > maxX) return null;
-
-    let x = Math.min(maxX, Math.max(minX, rawX));
-    x = Math.round(x * 100) / 100;
-    x = Math.min(maxX, Math.max(minX, x));
-
-    const y = Math.round(rawY * 100) / 100;
-
-    const next = [...bezierPoints];
-    next.splice(insertIndex, 0, {
-      x,
-      y,
-      inX: Math.round((prevX + x) * 50) / 100,
-      inY: y,
-      outX: Math.round((x + nextX) * 50) / 100,
-      outY: y,
-      handleMode: HANDLE_MODE.BROKEN,
-    });
-    updateBezierPoints(next);
-    selectedBezierPoint = insertIndex;
-    return insertIndex;
+    updateBezierPoints(result.points);
+    selectedBezierPoint = result.index;
+    return result.index;
   }
 
   function openBezierContextMenu(event) {
@@ -296,10 +178,10 @@
     const rect = curveCanvasEl.getBoundingClientRect();
     const cssX = event.clientX - rect.left;
     const cssY = event.clientY - rect.top;
-    const hitIndex = hitTestBezierPoint(cssX, cssY);
+    const hitIndex = hitTestBezierPoint(currentBezierPoints(), cssX, cssY, currentLayout());
     const insidePlot = isInsidePlotArea(cssX, cssY);
     const canAddAtLocation = canAddBezierPoint && insidePlot;
-    const canRemoveAtPoint = isRemovableBezierPoint(hitIndex);
+    const canRemoveAtPoint = isRemovableBezierPoint(bezierPoints, hitIndex);
 
     if (!canAddAtLocation && !canRemoveAtPoint) {
       closeMenus();
@@ -328,10 +210,10 @@
       return;
     }
 
-    const { plotW, plotH } = curveLayout();
+    const { plotW, plotH } = currentLayout();
     const cssX = PAD_LEFT + bezierContextValueX * plotW;
     const cssY = PAD_TOP + plotH - bezierContextValueY * plotH;
-    const insertedIndex = insertBezierPointAt(cssX, cssY);
+    const insertedIndex = insertBezierPointAtPosition(cssX, cssY);
     if (insertedIndex !== null) {
       selectedBezierPoint = insertedIndex;
     }
@@ -343,7 +225,7 @@
     event.preventDefault();
     event.stopPropagation();
 
-    if (!isRemovableBezierPoint(bezierContextPointIndex)) {
+    if (!isRemovableBezierPoint(bezierPoints, bezierContextPointIndex)) {
       closeMenus();
       return;
     }
@@ -357,18 +239,12 @@
     event.preventDefault();
     event.stopPropagation();
 
-    if (!isRemovableBezierPoint(bezierContextPointIndex)) {
+    if (!isRemovableBezierPoint(bezierPoints, bezierContextPointIndex)) {
       closeMenus();
       return;
     }
 
-    const next = [...bezierPoints];
-    next[bezierContextPointIndex] = {
-      ...next[bezierContextPointIndex],
-      handleMode: mode === HANDLE_MODE.MIRRORED ? HANDLE_MODE.MIRRORED : HANDLE_MODE.BROKEN,
-    };
-
-    updateBezierPoints(next);
+    updateBezierPoints(setBezierHandleMode(currentBezierPoints(), bezierContextPointIndex, mode));
     closeMenus();
   }
 
@@ -402,224 +278,30 @@
   function drawCurveCanvas() {
     if (!curveCanvasEl || !curveCtx || curveCanvasEl.width === 0) return;
 
-    const width = curveCanvasEl.width / curveDpr;
-    const height = curveCanvasEl.height / curveDpr;
-    const plotW = width - PAD_LEFT - PAD_RIGHT;
-    const plotH = height - PAD_TOP - PAD_BOTTOM;
+    const { width, height, plotW, plotH } = curveLayout(
+      curveCanvasEl.width / curveDpr,
+      curveCanvasEl.height / curveDpr,
+    );
 
-    drawBackground(curveCtx, width, height, plotW, plotH);
-    if (showGrid) drawCanvasGrid(curveCtx, plotW, plotH);
-    if (showLabels) drawCanvasLabels(curveCtx, width, height, plotW, plotH);
-
-    curveCtx.lineWidth = 2;
-    curveCtx.lineJoin = 'round';
-
-    if (params.curveType === CURVE_TYPE.PASSTHROUGH) {
-      curveCtx.strokeStyle = CURVE_COLOR;
-      curveCtx.beginPath();
-      curveCtx.moveTo(PAD_LEFT, PAD_TOP + plotH);
-      curveCtx.lineTo(PAD_LEFT + plotW, PAD_TOP);
-      curveCtx.stroke();
-    } else if (params.curveType === CURVE_TYPE.FLAT) {
-      const fy = PAD_TOP + plotH - params.flatLevel * plotH;
-      curveCtx.strokeStyle = CURVE_COLOR;
-      curveCtx.beginPath();
-      curveCtx.moveTo(PAD_LEFT, fy);
-      curveCtx.lineTo(PAD_LEFT + plotW, fy);
-      curveCtx.stroke();
-    } else if (bezierActive) {
-      curveCtx.strokeStyle = CURVE_COLOR;
-      curveCtx.beginPath();
-      if (bezierPoints.length > 0) {
-        const first = bezierPoints[0];
-        curveCtx.moveTo(PAD_LEFT + first.x * plotW, PAD_TOP + plotH - first.y * plotH);
-
-        for (let i = 0; i < bezierPoints.length - 1; i += 1) {
-          const a = bezierPoints[i];
-          const b = bezierPoints[i + 1];
-          curveCtx.bezierCurveTo(
-            PAD_LEFT + a.outX * plotW,
-            PAD_TOP + plotH - a.outY * plotH,
-            PAD_LEFT + b.inX * plotW,
-            PAD_TOP + plotH - b.inY * plotH,
-            PAD_LEFT + b.x * plotW,
-            PAD_TOP + plotH - b.y * plotH,
-          );
-        }
-      }
-      curveCtx.stroke();
-
-      if (showNodes) {
-        for (let i = 0; i < bezierPoints.length; i += 1) {
-          const point = bezierPoints[i];
-          const nodeX = PAD_LEFT + point.x * plotW;
-          const nodeY = PAD_TOP + plotH - point.y * plotH;
-          const isEndpoint = i === 0 || i === bezierPoints.length - 1;
-          const isSelected = i === selectedBezierPoint;
-
-          if (showNodeGuides) {
-            if (i > 0) {
-              const inX = PAD_LEFT + point.inX * plotW;
-              const inY = PAD_TOP + plotH - point.inY * plotH;
-              curveCtx.strokeStyle = 'rgba(0, 0, 0, 0.22)';
-              curveCtx.lineWidth = 1;
-              curveCtx.setLineDash([]);
-              curveCtx.beginPath();
-              curveCtx.moveTo(nodeX, nodeY);
-              curveCtx.lineTo(inX, inY);
-              curveCtx.stroke();
-
-              curveCtx.fillStyle = i === selectedBezierPoint && selectedBezierHandle === 'in'
-                ? '#111111'
-                : '#ffffff';
-              curveCtx.strokeStyle = '#2255cc';
-              curveCtx.lineWidth = 1.3;
-              curveCtx.beginPath();
-              curveCtx.arc(inX, inY, HANDLE_RADIUS, 0, Math.PI * 2);
-              curveCtx.fill();
-              curveCtx.stroke();
-            }
-
-            if (i < bezierPoints.length - 1) {
-              const outX = PAD_LEFT + point.outX * plotW;
-              const outY = PAD_TOP + plotH - point.outY * plotH;
-              curveCtx.strokeStyle = 'rgba(0, 0, 0, 0.22)';
-              curveCtx.lineWidth = 1;
-              curveCtx.setLineDash([]);
-              curveCtx.beginPath();
-              curveCtx.moveTo(nodeX, nodeY);
-              curveCtx.lineTo(outX, outY);
-              curveCtx.stroke();
-
-              curveCtx.fillStyle = i === selectedBezierPoint && selectedBezierHandle === 'out'
-                ? '#111111'
-                : '#ffffff';
-              curveCtx.strokeStyle = '#2255cc';
-              curveCtx.lineWidth = 1.3;
-              curveCtx.beginPath();
-              curveCtx.arc(outX, outY, HANDLE_RADIUS, 0, Math.PI * 2);
-              curveCtx.fill();
-              curveCtx.stroke();
-            }
-          }
-
-          curveCtx.fillStyle = isEndpoint ? '#7a7a8b' : '#2255cc';
-          curveCtx.beginPath();
-          curveCtx.arc(nodeX, nodeY, 6, 0, Math.PI * 2);
-          curveCtx.fill();
-
-          curveCtx.strokeStyle = isSelected ? '#111111' : '#ffffff';
-          curveCtx.lineWidth = isSelected ? 2.2 : 1.5;
-          curveCtx.stroke();
-        }
-      }
-    } else {
-      const inMin = params.inputMinimum;
-      const inMax = params.inputMaximum;
-      const outMin = params.minimum;
-      const outMax = params.maximum;
-
-      curveCtx.strokeStyle = CURVE_COLOR;
-      curveCtx.beginPath();
-      if (params.minApproach === MIN_APPROACH.CUT) {
-        curveCtx.moveTo(PAD_LEFT, PAD_TOP + plotH);
-        curveCtx.lineTo(PAD_LEFT + inMin * plotW, PAD_TOP + plotH);
-        curveCtx.lineTo(PAD_LEFT + inMin * plotW, PAD_TOP + plotH - outMin * plotH);
-      } else {
-        curveCtx.moveTo(PAD_LEFT, PAD_TOP + plotH - outMin * plotH);
-        curveCtx.lineTo(PAD_LEFT + inMin * plotW, PAD_TOP + plotH - outMin * plotH);
-      }
-      curveCtx.stroke();
-
-      curveCtx.strokeStyle = CURVE_COLOR;
-      curveCtx.beginPath();
-      const pxStart = Math.round(inMin * plotW);
-      const pxEnd = Math.round(inMax * plotW);
-      let first = true;
-      for (let px = pxStart; px <= pxEnd; px += 1) {
-        const x = px / plotW;
-        const y = applyPressureCurve(x, params);
-        const cx = PAD_LEFT + px;
-        const cy = PAD_TOP + plotH - y * plotH;
-        if (first) {
-          curveCtx.moveTo(cx, cy);
-          first = false;
-        } else {
-          curveCtx.lineTo(cx, cy);
-        }
-      }
-      curveCtx.stroke();
-
-      curveCtx.strokeStyle = CURVE_COLOR;
-      curveCtx.beginPath();
-      curveCtx.moveTo(PAD_LEFT + inMax * plotW, PAD_TOP + plotH - outMax * plotH);
-      curveCtx.lineTo(PAD_LEFT + plotW, PAD_TOP + plotH - outMax * plotH);
-      curveCtx.stroke();
-
-      const nodes = [
-        {
-          x: PAD_LEFT + params.inputMinimum * plotW,
-          y: PAD_TOP + plotH - params.minimum * plotH,
-          color: MIN_CONTROL_NODE_COLOR,
-          guide: MIN_CONTROL_NODE_GUIDE,
-        },
-        {
-          x: PAD_LEFT + params.inputMaximum * plotW,
-          y: PAD_TOP + plotH - params.maximum * plotH,
-          color: MAX_CONTROL_NODE_COLOR,
-          guide: MAX_CONTROL_NODE_GUIDE,
-        },
-      ];
-
-      for (const node of nodes) {
-        if (!showNodes || params.curveType === CURVE_TYPE.BASIC) continue;
-
-        if (showNodeGuides) {
-          curveCtx.strokeStyle = node.guide;
-          curveCtx.lineWidth = 1;
-          curveCtx.setLineDash([3, 4]);
-          curveCtx.beginPath();
-          curveCtx.moveTo(node.x, node.y);
-          curveCtx.lineTo(node.x, PAD_TOP + plotH);
-          curveCtx.moveTo(node.x, node.y);
-          curveCtx.lineTo(PAD_LEFT, node.y);
-          curveCtx.stroke();
-          curveCtx.setLineDash([]);
-        }
-
-        curveCtx.fillStyle = node.color;
-        curveCtx.beginPath();
-        curveCtx.arc(node.x, node.y, 6, 0, Math.PI * 2);
-        curveCtx.fill();
-
-        curveCtx.strokeStyle = '#ffffff';
-        curveCtx.lineWidth = 1.5;
-        curveCtx.stroke();
-      }
-    }
-
-    if (showEffectiveIndicator && livePressure !== null) {
-      // Y is always the pressure that actually drives the brush.
-      const mapped = liveOutputPressure ?? applyPressureCurve(livePressure, params);
-
-      // X keeps the dot on the curve in both orders. Under smooth-then-curve
-      // livePressure is the smoothed input the pipeline really fed to the
-      // curve, so (livePressure, mapped) is on the curve by construction.
-      // Under curve-then-smooth the smoothing runs after the curve and the
-      // output corresponds to no input the pipeline evaluated, so show the
-      // input that would produce it.
-      const order = params.smoothingOrder ?? SMOOTHING_ORDER.SMOOTH_THEN_CURVE;
-      const effectiveX = order === SMOOTHING_ORDER.CURVE_THEN_SMOOTH
-        ? invertPressureCurve(mapped, params, livePressure)
-        : livePressure;
-
-      drawIndicator(curveCtx, plotW, plotH, effectiveX, mapped, '#14a050', 'rgba(20, 160, 80, 0.2)');
-    }
-
-    if (showRawIndicator && liveRawPressure !== null) {
-      const mapped = applyPressureCurve(liveRawPressure, params);
-      drawIndicator(curveCtx, plotW, plotH, liveRawPressure, mapped, '#8833cc', 'rgba(130, 60, 200, 0.2)');
-    }
+    drawCurveChart(curveCtx, {
+      width,
+      height,
+      plotW,
+      plotH,
+      params,
+      bezierPoints,
+      showGrid,
+      showLabels,
+      showNodes,
+      showNodeGuides,
+      showRawIndicator,
+      showEffectiveIndicator,
+      selectedBezierPoint,
+      selectedBezierHandle,
+      livePressure,
+      liveRawPressure,
+      liveOutputPressure,
+    });
   }
 
   function onCurvePointerDown(event) {
@@ -631,7 +313,7 @@
     const cssY = event.clientY - rect.top;
 
     if (bezierActive) {
-      const hitHandle = hitTestBezierHandle(cssX, cssY);
+      const hitHandle = hitTestBezierHandle(currentBezierPoints(), cssX, cssY, currentLayout());
       if (hitHandle) {
         selectedBezierPoint = hitHandle.index;
         selectedBezierHandle = hitHandle.handle;
@@ -642,7 +324,7 @@
         return;
       }
 
-      const hitIndex = hitTestBezierPoint(cssX, cssY);
+      const hitIndex = hitTestBezierPoint(currentBezierPoints(), cssX, cssY, currentLayout());
       if (hitIndex === null) {
         selectedBezierPoint = null;
         selectedBezierHandle = null;
@@ -712,37 +394,11 @@
 
     if (draggingNode?.type === 'bezier-handle') {
       const pointIndex = draggingNode.index;
-      const handle = draggingNode.handle;
       if (pointIndex === null || pointIndex >= bezierPoints.length) return;
 
-      const next = [...bezierPoints];
-      const point = next[pointIndex];
-      const xVal = Math.round(valueFromCurveX(cssX) * 100) / 100;
-      const yVal = Math.round(valueFromCurveY(cssY) * 100) / 100;
-      const prevX = pointIndex > 0 ? next[pointIndex - 1].x : point.x;
-      const nextX = pointIndex < next.length - 1 ? next[pointIndex + 1].x : point.x;
-
-      const clampInX = (value) => Math.max(prevX, Math.min(point.x, value));
-      const clampOutX = (value) => Math.max(point.x, Math.min(nextX, value));
-
-      if (handle === 'in') {
-        point.inX = clampInX(xVal);
-        point.inY = yVal;
-        if (point.handleMode === HANDLE_MODE.MIRRORED && pointIndex > 0 && pointIndex < next.length - 1) {
-          point.outX = clampOutX(point.x + (point.x - point.inX));
-          point.outY = Math.min(1, Math.max(0, point.y + (point.y - point.inY)));
-        }
-      } else {
-        point.outX = clampOutX(xVal);
-        point.outY = yVal;
-        if (point.handleMode === HANDLE_MODE.MIRRORED && pointIndex > 0 && pointIndex < next.length - 1) {
-          point.inX = clampInX(point.x - (point.outX - point.x));
-          point.inY = Math.min(1, Math.max(0, point.y - (point.outY - point.y)));
-        }
-      }
-
-      next[pointIndex] = point;
-      updateBezierPoints(next);
+      updateBezierPoints(moveBezierHandle(
+        currentBezierPoints(), pointIndex, draggingNode.handle, cssX, cssY, currentLayout(),
+      ));
       drawCurveCanvas();
       return;
     }
@@ -772,9 +428,9 @@
     }
 
     if (bezierActive) {
-      if (hitTestBezierHandle(cssX, cssY)) {
+      if (hitTestBezierHandle(currentBezierPoints(), cssX, cssY, currentLayout())) {
         curveCanvasEl.style.cursor = 'crosshair';
-      } else if (hitTestBezierPoint(cssX, cssY) !== null) {
+      } else if (hitTestBezierPoint(currentBezierPoints(), cssX, cssY, currentLayout()) !== null) {
         curveCanvasEl.style.cursor = 'move';
       } else {
         curveCanvasEl.style.cursor = 'default';
@@ -869,50 +525,17 @@
     return tempCanvas;
   }
 
-  function canvasToJpegCanvas(sourceCanvas) {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = sourceCanvas.width;
-    tempCanvas.height = sourceCanvas.height;
-
-    const tempContext = tempCanvas.getContext('2d');
-    tempContext.fillStyle = '#ffffff';
-    tempContext.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    tempContext.drawImage(sourceCanvas, 0, 0);
-
-    return tempCanvas;
-  }
-
   async function copyChart(region) {
-    const sourceCanvas = buildChartCanvas(region);
-
-    sourceCanvas.toBlob(async (blob) => {
-      if (!blob) return;
-
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        const previousLabel = copyButtonLabel;
-        copyButtonLabel = 'Copied!';
-        setTimeout(() => {
-          copyButtonLabel = previousLabel;
-        }, 1500);
-      } catch (error) {
-        console.error('Clipboard write failed:', error);
-        copyButtonLabel = 'Failed';
-        setTimeout(() => {
-          copyButtonLabel = 'Copy ▾';
-        }, 1500);
-      }
-    }, 'image/png');
+    const ok = await copyPngToClipboard(flattenOntoWhite(buildChartCanvas(region)));
+    copyButtonLabel = ok ? 'Copied!' : 'Failed';
+    setTimeout(() => {
+      copyButtonLabel = 'Copy ▾';
+    }, 1500);
   }
 
   function saveChart(region) {
-    const sourceCanvas = canvasToJpegCanvas(buildChartCanvas(region));
     const baseName = region === 'full' ? 'pressure-curve-full' : 'pressure-curve-plot';
-
-    const link = document.createElement('a');
-    link.download = timestampedFileName(baseName, 'jpg');
-    link.href = sourceCanvas.toDataURL('image/jpeg', 0.95);
-    link.click();
+    downloadCanvas(flattenOntoWhite(buildChartCanvas(region)), baseName, 'image/png');
   }
 
   function handleCopyAction(region) {
@@ -987,7 +610,7 @@
         class="canvas-context-menu"
         style={`left: ${bezierContextMenuX}px; top: ${bezierContextMenuY}px;`}
       >
-        {#if isRemovableBezierPoint(bezierContextPointIndex)}
+        {#if isRemovableBezierPoint(bezierPoints, bezierContextPointIndex)}
           <button
             type="button"
             disabled={bezierPoints[bezierContextPointIndex].handleMode === HANDLE_MODE.MIRRORED}

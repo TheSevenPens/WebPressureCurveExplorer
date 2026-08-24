@@ -48,7 +48,7 @@ The collapse control lives on the seam rather than inside either pane, because a
 Single source of truth. Owns the `params` object, `livePressure`, `liveRawPressure`, and the `leftPanelsCollapsed` layout flag. Passes `params` down to both panels; receives live pressure values back from DrawingCanvas via bindings. Disables browser context menu globally.
 
 ### PressureChart.svelte
-Largest component (~1040 lines). Renders the pressure curve chart on a Canvas 2D element. Handles:
+Largest component (~1040 lines). Renders the pressure curve chart on a Canvas 2D element, delegating drawing to `drawPressureCurve.js` and bezier editing to `bezierInteraction.js`. Handles:
 - Hosting the Canvas / Pressure Response mode switch at the head of the column
 - Drawing the curve path for all curve types (passthrough, flat, basic/extended/sigmoid, bezier)
 - Draggable min/max control nodes for extended/sigmoid curves (basic pins its ranges, so it has no nodes)
@@ -142,7 +142,12 @@ Both canvases are backed at real screen-pixel resolution (see [Canvas resolution
 | `canvasUtils.js` | Shared canvas drawing: background, grid, axis labels, indicator dots |
 | `emaConstants.js` | EMA smoothing constants (max, midpoint target, curve exponent) |
 | `fileNames.js` | `timestampedFileName(base, ext)` for export downloads |
-| `pressurePipeline.js` | EMA state, `process()`, and the pen info builder, shared by every view that accepts pen input |
+| `pressurePipeline.js` | EMA state, `process()`, the pen info builder, and the shared pointer-sample readers |
+| `drawPressureCurve.js` | All curve-chart canvas drawing, plus the data/canvas coordinate mapping |
+| `bezierInteraction.js` | Bezier hit testing, insert/remove, handle dragging and mirroring |
+| `indicatorStyles.js` | Raw and effective indicator colours |
+| `canvasExport.js` | Clipboard copy, download, and white-flattening for exports |
+| `userPresets.js` | localStorage load/persist and the preset list operations |
 
 ### curveMath.js
 
@@ -355,4 +360,12 @@ Each record is one empirical measurement: the physical force applied in **gram-f
 | [src/lib/emaConstants.js](../src/lib/emaConstants.js) | Utility | EMA smoothing constants |
 | [src/lib/fileNames.js](../src/lib/fileNames.js) | Utility | Timestamped export filenames |
 | [src/lib/pressurePipeline.js](../src/lib/pressurePipeline.js) | Utility | Shared smoothing state + pen info |
+| [src/lib/drawPressureCurve.js](../src/lib/drawPressureCurve.js) | Utility | Curve chart drawing + coordinate mapping |
+| [src/lib/bezierInteraction.js](../src/lib/bezierInteraction.js) | Utility | Bezier hit testing and editing |
+| [src/lib/indicatorStyles.js](../src/lib/indicatorStyles.js) | Utility | Live indicator colours |
+| [src/lib/canvasExport.js](../src/lib/canvasExport.js) | Utility | Canvas copy/download helpers |
+| [src/lib/userPresets.js](../src/lib/userPresets.js) | Utility | Preset storage + list operations |
+| [src/lib/TypeSelectRow.svelte](../src/lib/TypeSelectRow.svelte) | Component | Shared type selector + reset row |
+| [src/lib/UserPresetsSection.svelte](../src/lib/UserPresetsSection.svelte) | Component | User preset list and save dialog |
+| [src/lib/curveMath.test.js](../src/lib/curveMath.test.js) | Tests | vitest suite for the curve math |
 | [sample-pressure-response/](../sample-pressure-response/) | Data | Bundled pen response JSON files |

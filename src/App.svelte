@@ -5,6 +5,7 @@
   import { CURVE_TYPE } from './lib/curveTypes';
   import { SMOOTHING_ORDER, SMOOTHING_TYPE, MIN_APPROACH, HANDLE_MODE, VIEW_MODE } from './lib/uiConstants';
 
+  /** @type {import('./lib/curveTypes').Params} */
   const DEFAULT_PARAMS = {
     smoothingType: SMOOTHING_TYPE.EMA,
     emaSmoothing: 0,

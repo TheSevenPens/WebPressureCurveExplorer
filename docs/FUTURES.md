@@ -6,7 +6,6 @@ Ideas, known issues, and potential directions for WebPressureExplorer.
 
 - **Context menu positioning** — The bezier right-click context menu uses `clientX`/`clientY` and can overflow off-screen on small viewports.
 - **No dark mode** — Colors are hardcoded for a light theme.
-- **Accessibility warnings in the build** — The Svelte compiler flags click handlers on non-interactive elements in `PressureCurveControls.svelte` (the curve type row) and `NamedSlider.svelte` (the click-to-edit value and the slider context menu target). Each needs either a keyboard handler or a real interactive element.
 
 ## Feature suggestions
 
@@ -31,8 +30,7 @@ Ideas, known issues, and potential directions for WebPressureExplorer.
 
 ## Technical improvements
 
-- **Unit tests for curveMath.js** — The math module is pure functions with no dependencies, ideal for unit testing. Cover edge cases like zero-range inputs, boundary values, and bezier segments with near-zero spans. The project currently has no test framework at all.
-- **PressureChart.svelte decomposition** — Still the largest component (~1040 lines). The bezier editing logic (hit testing, dragging, context menu) could be extracted into a dedicated module or child component.
+- **Widen test coverage** — `curveMath.js` is covered by vitest and CI runs it. `bezierInteraction.js` and `userPresets.js` are now pure modules and are the obvious next targets.
 - **Responsive layout** — The two-panel grid doesn't adapt to narrow viewports. The collapse toggle helps reclaim canvas space on demand, but a stacked layout for small screens is still missing.
 - **Canvas resize behavior** — Drawing canvases preserve their contents across a resize by snapshotting and redrawing anchored top-left. Content that falls outside a shrunken canvas is lost on the next resize; keeping an off-screen buffer at maximum extent would avoid that.
 

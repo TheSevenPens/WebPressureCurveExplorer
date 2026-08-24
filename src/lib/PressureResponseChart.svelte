@@ -2,7 +2,8 @@
   import { onMount } from 'svelte';
   import { applyPressureCurve } from './curveMath';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
-  import { drawBackground, drawGrid, drawLabels, drawIndicator } from './canvasUtils';
+  import { drawBackground, drawGrid, drawLabels, drawResponseIndicator } from './canvasUtils';
+  import { RAW_INDICATOR, EFFECTIVE_INDICATOR } from './indicatorStyles';
 
   const RESPONSE_COLOR = '#000000';
 
@@ -91,24 +92,6 @@
         : PAD_LEFT + (records[records.length - 1][0] / maxGf) * plotW;
     }
 
-    function drawIndicator(yNorm, solidColor, fadedColor) {
-      const cx = findCxForY(yNorm);
-      const cy = PAD_TOP + plotH - yNorm * plotH;
-      ctx.strokeStyle = fadedColor;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 4]);
-      ctx.beginPath();
-      ctx.moveTo(PAD_LEFT, cy);
-      ctx.lineTo(cx, cy);
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx, PAD_TOP + plotH);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = solidColor;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
 
     if (!records.length || maxGf === 0) return;
 
@@ -147,7 +130,7 @@
       const yNorm = (showCurveEffect && params)
         ? applyPressureCurve(liveRawPressure, params)
         : liveRawPressure;
-      drawIndicator(yNorm, '#8833cc', 'rgba(136, 51, 204, 0.25)');
+      drawResponseIndicator(ctx, plotH, findCxForY(yNorm), yNorm, RAW_INDICATOR.solid, RAW_INDICATOR.guide);
     }
 
     if (showEffectiveIndicator && livePressure !== null) {
@@ -156,7 +139,7 @@
       const yNorm = (showCurveEffect && params)
         ? (liveOutputPressure ?? applyPressureCurve(livePressure, params))
         : livePressure;
-      drawIndicator(yNorm, '#14a050', 'rgba(20, 160, 80, 0.25)');
+      drawResponseIndicator(ctx, plotH, findCxForY(yNorm), yNorm, EFFECTIVE_INDICATOR.solid, EFFECTIVE_INDICATOR.guide);
     }
   }
 

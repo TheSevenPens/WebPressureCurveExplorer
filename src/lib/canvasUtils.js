@@ -90,3 +90,30 @@ export function drawIndicator(ctx, plotW, plotH, inputValue, outputValue, solidC
   ctx.arc(dotX, dotY, 4, 0, Math.PI * 2);
   ctx.fill();
 }
+
+const RESPONSE_INDICATOR_RADIUS = 3;
+
+/**
+ * Indicator for the response chart, where X is looked up from Y on the
+ * measured polyline rather than computed from the input value. Smaller dot
+ * than drawIndicator, since the response curve is denser.
+ */
+export function drawResponseIndicator(ctx, plotH, cx, yNorm, solidColor, guideColor) {
+  const cy = PAD_TOP + plotH - yNorm * plotH;
+
+  ctx.strokeStyle = guideColor;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.moveTo(PAD_LEFT, cy);
+  ctx.lineTo(cx, cy);
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, PAD_TOP + plotH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = solidColor;
+  ctx.beginPath();
+  ctx.arc(cx, cy, RESPONSE_INDICATOR_RADIUS, 0, Math.PI * 2);
+  ctx.fill();
+}

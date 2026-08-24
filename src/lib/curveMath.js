@@ -38,6 +38,10 @@ export function rawCurveSlope(xNorm, params) {
   return (rawCurveOutput(x1, params) - rawCurveOutput(x0, params)) / (x1 - x0);
 }
 
+/**
+ * @param {Partial<import('./curveTypes').BezierPoint>[]} points
+ * @returns {import('./curveTypes').BezierPoint[]} sorted, clamped, endpoint-pinned
+ */
 export function normalizeBezierPoints(points) {
   const source = Array.isArray(points) && points.length > 0
     ? points
@@ -194,6 +198,14 @@ function evaluateCustomCurve(x, points) {
   return lastPoint.y;
 }
 
+/**
+ * The full pressure transform: the one entry point both the chart and the
+ * drawing canvas use.
+ *
+ * @param {number} x raw pressure, 0-1
+ * @param {import('./curveTypes').Params} params
+ * @returns {number} output pressure, 0-1
+ */
 export function applyPressureCurve(x, params) {
   const {
     inputMinimum,
@@ -248,6 +260,10 @@ const IDENTITY_EPSILON = 1e-6;
 // audible effect on pressure. Sampling the real transform rather than checking
 // curveType catches the neutral cases too: a basic/extended/sigmoid curve at
 // CurveAmount 0 with full ranges, or a bezier whose points sit on the diagonal.
+/**
+ * @param {import('./curveTypes').Params} params
+ * @returns {boolean} true when the curve maps every input to itself
+ */
 export function isIdentityCurve(params) {
   for (let i = 0; i < IDENTITY_SAMPLES; i++) {
     const x = i / (IDENTITY_SAMPLES - 1);
@@ -264,6 +280,12 @@ const INVERT_ITERATIONS = 40;
 // actually evaluated. Assumes the curve is monotonic; a flat or otherwise
 // non-invertible curve returns fallbackX, which keeps the dot at the pressure
 // being applied rather than inventing a position.
+/**
+ * @param {number} y target output, 0-1
+ * @param {import('./curveTypes').Params} params
+ * @param {number} [fallbackX] returned when the curve is not invertible
+ * @returns {number} the input the curve maps to `y`
+ */
 export function invertPressureCurve(y, params, fallbackX = 0) {
   const yLo = applyPressureCurve(0, params);
   const yHi = applyPressureCurve(1, params);

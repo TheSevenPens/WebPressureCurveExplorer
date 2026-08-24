@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte';
-  import { PRESSURE_CONTROL } from './uiConstants';
-  import { timestampedFileName } from './fileNames';
-  import { createPressureProcessor, buildPointerInfo, EMPTY_POINTER_INFO } from './pressurePipeline';
+  import { COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
+  import { copyPngToClipboard, downloadCanvas } from './canvasExport';
+  import { createPressureProcessor, readPointerSample, clearPointerSample, EMPTY_POINTER_INFO } from './pressurePipeline';
 
   const CANVAS_BG = '#f5f5f0';
   const STROKE_PALETTE = [
@@ -11,7 +11,6 @@
     '#dcbeff', '#9a6324', '#800000', '#aaffc3', '#808000',
     '#000075',
   ];
-  const DIVIDER_HEIGHT = 1;
 
   export let params;
   export let livePressure = null;
@@ -20,7 +19,7 @@
   export let info = { ...EMPTY_POINTER_INFO };
   // Brush controls live in the view toolbar above, outside this component.
   export let brushSize = 40;
-  export let colorMode = 'black';
+  export let colorMode = COLOR_MODE.BLACK;
   export let pressureControls = PRESSURE_CONTROL.SIZE;
 
   const processor = createPressureProcessor();
@@ -43,7 +42,7 @@
   let lastColorIndex = -1;
 
   function pickStrokeColor() {
-    if (colorMode === 'black') {
+    if (colorMode === COLOR_MODE.BLACK) {
       strokeColor = '#1a1a2e';
       return;
     }
@@ -171,12 +170,9 @@
     pickStrokeColor();
     isDrawing = true;
     lastPos = pointerToCanvasPos(event, sourceCanvas);
-    const rawPressure = Number(event.pressure ?? 0);
-    const processedPressure = processor.process(rawPressure, params);
-    liveRawPressure = rawPressure;
-    livePressure = processedPressure.preCurvePressure;
-    liveOutputPressure = processedPressure.outputPressure;
-    info = buildPointerInfo(event, rawPressure, processedPressure);
+    let processedPressure;
+    ({ liveRawPressure, livePressure, liveOutputPressure, info, processed: processedPressure } =
+      readPointerSample(processor, event, params));
 
     if (sourceCanvas?.setPointerCapture) {
       sourceCanvas.setPointerCapture(event.pointerId);
@@ -184,12 +180,9 @@
   }
 
   function handlePointerMove(event, sourceCanvas) {
-    const rawPressure = Number(event.pressure ?? 0);
-    const processedPressure = processor.process(rawPressure, params);
-    liveRawPressure = rawPressure;
-    livePressure = processedPressure.preCurvePressure;
-    liveOutputPressure = processedPressure.outputPressure;
-    info = buildPointerInfo(event, rawPressure, processedPressure);
+    let processedPressure;
+    ({ liveRawPressure, livePressure, liveOutputPressure, info, processed: processedPressure } =
+      readPointerSample(processor, event, params));
 
     if (!isDrawing) return;
 
@@ -201,8 +194,8 @@
       drawSegment(processedCtx, lastPos, currentPos, pSize, pOpacity);
     }
 
-    const rSize = pressureControls === PRESSURE_CONTROL.OPACITY ? brushSize : Math.max(1, rawPressure * brushSize);
-    const rOpacity = pressureControls === PRESSURE_CONTROL.OPACITY ? Math.max(0.02, rawPressure) : 1;
+    const rSize = pressureControls === PRESSURE_CONTROL.OPACITY ? brushSize : Math.max(1, liveRawPressure * brushSize);
+    const rOpacity = pressureControls === PRESSURE_CONTROL.OPACITY ? Math.max(0.02, liveRawPressure) : 1;
     drawSegment(rawCtx, lastPos, currentPos, rSize, rOpacity);
 
     lastPos = currentPos;
@@ -211,29 +204,16 @@
   function stopDrawing() {
     isDrawing = false;
     lastPos = null;
-    processor.reset();
-    liveRawPressure = null;
-    livePressure = null;
-    liveOutputPressure = null;
-    info = { ...EMPTY_POINTER_INFO };
+    ({ liveRawPressure, livePressure, liveOutputPressure, info } =
+      clearPointerSample(processor));
   }
 
-  async function copyCanvas(canvasEl) {
-    canvasEl.toBlob(async (blob) => {
-      if (!blob) return;
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      } catch (error) {
-        console.error('Clipboard write failed:', error);
-      }
-    }, 'image/png');
+  function copyCanvas(canvasEl) {
+    copyPngToClipboard(canvasEl);
   }
 
   function saveCanvas(canvasEl, baseName) {
-    const link = document.createElement('a');
-    link.download = timestampedFileName(baseName, 'png');
-    link.href = canvasEl.toDataURL('image/png');
-    link.click();
+    downloadCanvas(canvasEl, baseName, 'image/png');
   }
 
   function onKeyDown(event) {

@@ -1,6 +1,6 @@
 <script>
   import PressureResponseChart from './PressureResponseChart.svelte';
-  import { createPressureProcessor, buildPointerInfo, EMPTY_POINTER_INFO } from './pressurePipeline';
+  import { createPressureProcessor, readPointerSample, clearPointerSample, EMPTY_POINTER_INFO } from './pressurePipeline';
 
   export let params;
   export let data = null;
@@ -19,23 +19,16 @@
   // indicators on the curve and response charts keep tracking: press the pen
   // here and watch where you land on the hardware's force curve.
   function handlePointer(event) {
-    const rawPressure = Number(event.pressure ?? 0);
-    const processed = processor.process(rawPressure, params);
-    liveRawPressure = rawPressure;
-    livePressure = processed.preCurvePressure;
-    liveOutputPressure = processed.outputPressure;
-    info = buildPointerInfo(event, rawPressure, processed);
+    ({ liveRawPressure, livePressure, liveOutputPressure, info } =
+      readPointerSample(processor, event, params));
   }
 
   // pointerleave alone is not enough: lifting the pen while still over the
   // pane fires pointerup, which would otherwise leave the indicators parked at
   // the last contact pressure.
   function handlePointerEnd() {
-    processor.reset();
-    liveRawPressure = null;
-    livePressure = null;
-    liveOutputPressure = null;
-    info = { ...EMPTY_POINTER_INFO };
+    ({ liveRawPressure, livePressure, liveOutputPressure, info } =
+      clearPointerSample(processor));
   }
 </script>
 
