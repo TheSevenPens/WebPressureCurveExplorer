@@ -50,7 +50,6 @@
   let isDrawing = false;
   let lastPos = null;
   let smoothedPressure = null;
-  let smoothedPos = null;
   let drawZeroPressure = false;
   let brushSize = 40;
   let colorMode = COLOR_MODE.BLACK;
@@ -121,27 +120,6 @@
       x: pointerEvent.clientX - rect.left,
       y: pointerEvent.clientY - rect.top,
     };
-  }
-
-  function getSmoothedPos(rawPos) {
-    const smoothing = Math.min(0.99, Math.max(0, Number(params.positionEmaSmoothing ?? 0)));
-
-    if (smoothing <= 0) {
-      smoothedPos = rawPos;
-      return rawPos;
-    }
-
-    if (smoothedPos === null) {
-      smoothedPos = rawPos;
-      return rawPos;
-    }
-
-    const alpha = 1 - smoothing;
-    smoothedPos = {
-      x: smoothedPos.x + alpha * (rawPos.x - smoothedPos.x),
-      y: smoothedPos.y + alpha * (rawPos.y - smoothedPos.y),
-    };
-    return smoothedPos;
   }
 
   function scheduleResize() {
@@ -261,7 +239,7 @@
   function handlePointerDown(event, sourceCanvas) {
     pickStrokeColor();
     isDrawing = true;
-    lastPos = getSmoothedPos(pointerToCanvasPos(event, sourceCanvas));
+    lastPos = pointerToCanvasPos(event, sourceCanvas);
     const rawPressure = Number(event.pressure ?? 0);
     const processedPressure = processPressure(rawPressure);
     liveRawPressure = rawPressure;
@@ -282,7 +260,7 @@
 
     if (!isDrawing) return;
 
-    const currentPos = getSmoothedPos(pointerToCanvasPos(event, sourceCanvas));
+    const currentPos = pointerToCanvasPos(event, sourceCanvas);
 
     if (drawZeroPressure || processedPressure.outputPressure > 0) {
       const pSize = pressureControls === PRESSURE_CONTROL.OPACITY ? brushSize : Math.max(1, processedPressure.outputPressure * brushSize);
@@ -301,7 +279,6 @@
     isDrawing = false;
     lastPos = null;
     smoothedPressure = null;
-    smoothedPos = null;
     liveRawPressure = null;
     livePressure = null;
     resetInfo();

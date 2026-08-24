@@ -8,8 +8,6 @@ App.svelte (root - state owner)
     PressureChartFormat.svelte       (display toggles: grid, labels, nodes, indicators)
     PressureResponseChart.svelte     (pen hardware response data chart)
     PressureCurveControls.svelte     (DetailsPanel: curve type selector + parameter sliders)
-      PositionControls.svelte        (position EMA smoothing)
-        NamedSlider.svelte
       PressureSmoothingControls.svelte (pressure EMA + order)
         NamedSlider.svelte
       NamedSlider.svelte             (multiple instances for curve params)
@@ -44,11 +42,10 @@ The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Co
   - **extended/sigmoid**: Curve Amount slider, read-only node values table (driven by chart nodes), min approach radio buttons
   - **bezier**: preset dropdown, add/remove point buttons
 - **Pressure Smoothing**: Smoothing Amount slider, smoothing order radio buttons
-- **Position Smoothing**: Smoothing Amount slider
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
-### PositionControls.svelte / PressureSmoothingControls.svelte
-Thin wrappers around NamedSlider for position and pressure smoothing respectively. PressureSmoothingControls also includes smoothing order radio buttons (smooth-then-curve vs curve-then-smooth).
+### PressureSmoothingControls.svelte
+Thin wrapper around NamedSlider for pressure smoothing. Also includes smoothing order radio buttons (smooth-then-curve vs curve-then-smooth).
 
 ### PressureResponsePanel.svelte
 Panel for loading pen hardware pressure response data. Offers a unified dropdown with three bundled Wacom KP-504E samples and an "Upload JSON..." option. Includes a "Show effect of curve" checkbox. Fires callbacks to PressureChart when data or checkbox state changes. Hosted in the curve panel's collapsible Pressure Response section.
@@ -63,7 +60,7 @@ Standalone canvas chart rendering a pen's physical pressure response (grams-forc
 Reusable labeled slider component. Features: click-to-edit value display, right-click context menu (min/max/reset), optional non-linear (power-law curved) slider response, configurable display formatting.
 
 ### DrawingCanvas.svelte
-Split drawing surface with two canvases. The top canvas ("Pressure processing: ON") renders strokes using the full pressure pipeline (EMA smoothing + curve application + position smoothing). The bottom canvas ("Pressure processing: OFF") renders the same strokes using raw unprocessed pen pressure. Drawing in either half mirrors to the other, allowing direct visual comparison. Displays live info via DrawingCanvasHeader. Clear via Delete/Backspace or button.
+Split drawing surface with two canvases. The top canvas ("Pressure processing: ON") renders strokes using the full pressure pipeline (EMA smoothing + curve application). The bottom canvas ("Pressure processing: OFF") renders the same strokes using raw unprocessed pen pressure. Drawing in either half mirrors to the other, allowing direct visual comparison. Displays live info via DrawingCanvasHeader. Clear via Delete/Backspace or button.
 
 ### DrawingCanvasHeader.svelte
 Toolbar showing pointer type, pressure flow values (raw -> intermediate -> output), tilt angles, azimuth, altitude, and a clear button.
@@ -113,7 +110,6 @@ The `params` object:
 | `transitionWidth` | number | 0-0.5 | Hermite transition smoothing width |
 | `bezierPoints` | array | 2-16 points | Bezier curve control points |
 | `emaSmoothing` | number | 0-0.99 | Pressure EMA smoothing amount |
-| `positionEmaSmoothing` | number | 0-0.99 | Cursor position EMA smoothing |
 | `smoothingOrder` | string | `'smooth-then-curve'`, `'curve-then-smooth'` | Pipeline order |
 
 ## Pressure response data schema

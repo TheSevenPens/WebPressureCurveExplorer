@@ -3,7 +3,6 @@
   import { CURVE_TYPE } from './curveTypes';
   import { BEZIER_PRESETS } from './bezierPresets';
   import { MIN_APPROACH } from './uiConstants';
-  import PositionControls from './PositionControls.svelte';
   import PressureSmoothingControls from './PressureSmoothingControls.svelte';
   import CollapsibleSection from './CollapsibleSection.svelte';
 
@@ -264,10 +263,6 @@
 
     <CollapsibleSection title="Pressure Smoothing">
       <PressureSmoothingControls bind:params />
-    </CollapsibleSection>
-
-    <CollapsibleSection title="Position Smoothing">
-      <PositionControls bind:params />
     </CollapsibleSection>
 
     <CollapsibleSection title="Presets" open={false}>

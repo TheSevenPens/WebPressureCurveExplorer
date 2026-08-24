@@ -16,7 +16,7 @@ The app provides two side-by-side panels:
 - **Bezier presets** — built-in preset shapes (Linear, Soft, Firm, S-Curve, Light Touch, Heavy, Step) for quick bezier curve setup
 - **Draggable control nodes** on the chart for extended/sigmoid curves to set input/output ranges visually
 - **Full bezier editor** with adjustable handles, mirrored/broken handle modes, and right-click context menu
-- **EMA smoothing** for both pressure and cursor position, with configurable application order (smooth-then-curve or curve-then-smooth)
+- **EMA smoothing** for pressure, with configurable application order (smooth-then-curve or curve-then-smooth)
 - **Min approach modes** (clamp vs cut) controlling how the curve behaves below the input minimum
 - **Live pressure indicators** on the chart showing raw (purple) and effective (green) pressure positions in real time
 - **Pressure response data** — load pen hardware measurement data (physical grams-force vs logical pressure %) from bundled samples or uploaded JSON files, with optional curve overlay
@@ -58,7 +58,6 @@ src/
     PressureResponseChart.svelte  Pen hardware response data chart
     PressureResponsePanel.svelte  Load/select response data
     PressureSmoothingControls.svelte  Pressure smoothing + order controls
-    PositionControls.svelte     Position smoothing slider
     NamedSlider.svelte          Reusable slider with edit mode + context menu
     DrawingCanvas.svelte        Split pressure-sensitive drawing surface
     DrawingCanvasHeader.svelte  Toolbar with live pointer info + brush controls
