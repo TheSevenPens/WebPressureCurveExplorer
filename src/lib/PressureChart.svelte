@@ -1,15 +1,13 @@
 <script>
   import { onMount } from 'svelte';
-  import { applyPressureCurve, normalizeBezierPoints } from './curveMath';
+  import { applyPressureCurve, normalizeBezierPoints, invertPressureCurve } from './curveMath';
   import { CURVE_TYPE } from './curveTypes';
-  import { MIN_APPROACH, HANDLE_MODE } from './uiConstants';
+  import { MIN_APPROACH, HANDLE_MODE, SMOOTHING_ORDER, VIEW_MODE } from './uiConstants';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
   import { drawBackground, drawGrid as drawCanvasGrid, drawLabels as drawCanvasLabels, drawIndicator } from './canvasUtils';
   import { timestampedFileName } from './fileNames';
   import PressureChartFormat from './PressureChartFormat.svelte';
   import PressureCurveControls from './PressureCurveControls.svelte';
-  import PressureResponseChart from './PressureResponseChart.svelte';
-  import PressureResponsePanel from './PressureResponsePanel.svelte';
   import CollapsibleSection from './CollapsibleSection.svelte';
 
   const CURVE_COLOR = '#000000';
@@ -25,25 +23,16 @@
   export let livePressure = null;
   export let liveRawPressure = null;
   export let liveOutputPressure = null;
+  export let showRawIndicator = true;
+  export let showEffectiveIndicator = true;
+  export let viewMode = VIEW_MODE.CANVAS;
+  export let onViewModeChange = () => {};
   export let defaultParams;
-
-  let pressureResponseData = null;
-  let showResponseCurveEffect = true;
-
-  function onResponseDataChange(data) {
-    pressureResponseData = data;
-  }
-
-  function onResponseShowCurveEffectChange(value) {
-    showResponseCurveEffect = value;
-  }
 
   let showGrid = true;
   let showLabels = true;
   let showNodes = true;
   let showNodeGuides = true;
-  let showRawIndicator = true;
-  let showEffectiveIndicator = true;
 
   let menuCopyOpen = false;
   let menuSaveOpen = false;
@@ -610,16 +599,21 @@
     }
 
     if (showEffectiveIndicator && livePressure !== null) {
-      // Plot the pressure that actually drives the brush, rather than
-      // re-deriving it from the pre-curve input. Under smooth-then-curve the
-      // output is curve(smoothed), so the dot sits on the curve as before.
-      // Under curve-then-smooth the smoothing happens after the curve, so the
-      // output is not a point on the curve at all: the dot shares the raw
-      // dot's X and drops to the smoothed Y, and that vertical gap is the
-      // effect of smoothing. Without this the two dots coincide exactly and
-      // the effective one is painted over.
+      // Y is always the pressure that actually drives the brush.
       const mapped = liveOutputPressure ?? applyPressureCurve(livePressure, params);
-      drawIndicator(curveCtx, plotW, plotH, livePressure, mapped, '#14a050', 'rgba(20, 160, 80, 0.2)');
+
+      // X keeps the dot on the curve in both orders. Under smooth-then-curve
+      // livePressure is the smoothed input the pipeline really fed to the
+      // curve, so (livePressure, mapped) is on the curve by construction.
+      // Under curve-then-smooth the smoothing runs after the curve and the
+      // output corresponds to no input the pipeline evaluated, so show the
+      // input that would produce it.
+      const order = params.smoothingOrder ?? SMOOTHING_ORDER.SMOOTH_THEN_CURVE;
+      const effectiveX = order === SMOOTHING_ORDER.CURVE_THEN_SMOOTH
+        ? invertPressureCurve(mapped, params, livePressure)
+        : livePressure;
+
+      drawIndicator(curveCtx, plotW, plotH, effectiveX, mapped, '#14a050', 'rgba(20, 160, 80, 0.2)');
     }
 
     if (showRawIndicator && liveRawPressure !== null) {
@@ -959,6 +953,25 @@
 <div id="curve-panel">
   <div id="panel-left" bind:this={curvePanelEl}>
     <div class="panel-title">Pressure explorer</div>
+
+    <!-- Primary navigation for the whole app, so it leads the column rather
+         than sitting among the view's own controls. -->
+    <div class="mode-switch" role="group" aria-label="View mode">
+      <button
+        type="button"
+        class="mode-btn"
+        class:active={viewMode === VIEW_MODE.CANVAS}
+        aria-pressed={viewMode === VIEW_MODE.CANVAS}
+        on:click={() => onViewModeChange(VIEW_MODE.CANVAS)}
+      >Canvas</button>
+      <button
+        type="button"
+        class="mode-btn"
+        class:active={viewMode === VIEW_MODE.RESPONSE}
+        aria-pressed={viewMode === VIEW_MODE.RESPONSE}
+        on:click={() => onViewModeChange(VIEW_MODE.RESPONSE)}
+      >Pressure Response</button>
+    </div>
     <canvas
       id="curve-canvas"
       bind:this={curveCanvasEl}
@@ -1034,6 +1047,11 @@
         <!-- A popover rather than a menu: it holds checkboxes, not commands,
              so it carries no menu role and swallows clicks to stay open while
              several options are toggled. -->
+        <!-- The handler only stops the document listener from closing the
+             panel; the div is not a control, so a keyboard equivalent would
+             have nothing to do. The checkboxes inside are focusable. -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="dropdown-panel" class:open={menuFormatOpen} on:click|stopPropagation>
           <PressureChartFormat
             bind:showGrid
@@ -1049,24 +1067,6 @@
       </div>
     </div>
 
-    <CollapsibleSection title="Pressure Response">
-      <PressureResponsePanel
-        onDataChange={onResponseDataChange}
-        onShowCurveEffectChange={onResponseShowCurveEffectChange}
-      />
-      {#if pressureResponseData}
-        <PressureResponseChart
-          data={pressureResponseData}
-          {params}
-          showCurveEffect={showResponseCurveEffect}
-          {liveRawPressure}
-          {livePressure}
-          {liveOutputPressure}
-          {showRawIndicator}
-          {showEffectiveIndicator}
-        />
-      {/if}
-    </CollapsibleSection>
   </div>
 
   <PressureCurveControls

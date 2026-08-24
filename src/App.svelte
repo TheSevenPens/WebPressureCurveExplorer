@@ -1,9 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import PressureChart from './lib/PressureChart.svelte';
-  import DrawingCanvas from './lib/DrawingCanvas.svelte';
+  import ViewPanel from './lib/ViewPanel.svelte';
   import { CURVE_TYPE } from './lib/curveTypes';
-  import { SMOOTHING_ORDER, SMOOTHING_TYPE, MIN_APPROACH, HANDLE_MODE } from './lib/uiConstants';
+  import { SMOOTHING_ORDER, SMOOTHING_TYPE, MIN_APPROACH, HANDLE_MODE, VIEW_MODE } from './lib/uiConstants';
 
   const DEFAULT_PARAMS = {
     smoothingType: SMOOTHING_TYPE.EMA,
@@ -46,6 +46,24 @@
   let liveOutputPressure = null;
   let showDriverWarning = true;
   let leftPanelsCollapsed = false;
+  let viewMode = VIEW_MODE.CANVAS;
+  // Owned here because the loader lives in the right pane's toolbar while the
+  // curve panel needs the same data for its indicators.
+  let pressureResponseData = null;
+  let showResponseCurveEffect = true;
+  let showRawIndicator = true;
+  let showEffectiveIndicator = true;
+
+  function setViewMode(mode) {
+    if (viewMode === mode) return;
+    viewMode = mode;
+    // The outgoing view owned these; clear them so the indicators do not
+    // freeze at whatever its last pointer event left behind.
+    livePressure = null;
+    liveRawPressure = null;
+    liveOutputPressure = null;
+  }
+
   function preventContextMenu(event) {
     event.preventDefault();
   }
@@ -65,13 +83,40 @@
   </div>
 {/if}
 <div id="layout" class:left-collapsed={leftPanelsCollapsed}>
-  <PressureChart bind:params {livePressure} {liveRawPressure} {liveOutputPressure} defaultParams={DEFAULT_PARAMS} />
-  <DrawingCanvas
+  <PressureChart
+    bind:params
+    bind:showRawIndicator
+    bind:showEffectiveIndicator
+    {viewMode}
+    onViewModeChange={setViewMode}
+    {livePressure}
+    {liveRawPressure}
+    {liveOutputPressure}
+    defaultParams={DEFAULT_PARAMS}
+  />
+
+  <!-- Sits on the seam it moves, and in its own grid column so it survives
+       the collapse and can bring the panel back. -->
+  <button
+    class="panel-rail"
+    type="button"
+    aria-expanded={!leftPanelsCollapsed}
+    aria-label={leftPanelsCollapsed ? 'Show panel' : 'Hide panel'}
+    title={leftPanelsCollapsed ? 'Show panel' : 'Hide panel'}
+    on:click={() => leftPanelsCollapsed = !leftPanelsCollapsed}
+  >{leftPanelsCollapsed ? '›' : '‹'}</button>
+
+  <ViewPanel
     bind:livePressure
     bind:liveRawPressure
     bind:liveOutputPressure
+    {viewMode}
     {params}
-    {leftPanelsCollapsed}
-    onToggleLeftPanels={() => leftPanelsCollapsed = !leftPanelsCollapsed}
+    {showRawIndicator}
+    {showEffectiveIndicator}
+    responseData={pressureResponseData}
+    {showResponseCurveEffect}
+    onResponseDataChange={(data) => pressureResponseData = data}
+    onResponseShowCurveEffectChange={(value) => showResponseCurveEffect = value}
   />
 </div>

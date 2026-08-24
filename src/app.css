@@ -31,7 +31,7 @@ body {
 
 #layout {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -67,26 +67,80 @@ body {
    the full width. #curve-panel stays mounted so its state and loaded data
    survive the toggle. */
 #layout.left-collapsed {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
 #layout.left-collapsed #curve-panel {
   display: none;
 }
 
-#btn-toggle-panels {
-  padding: 4px 10px;
+/* Primary view navigation, at the head of the chart column. */
+.mode-switch {
+  display: flex;
+  margin: 8px 0 10px;
+  border: 1px solid #b8b8c6;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 7px 8px;
   background: #fff;
-  border: 1px solid #bbb;
-  border-radius: 4px;
+  border: none;
+  border-right: 1px solid #b8b8c6;
   cursor: pointer;
   font-size: 12px;
   font-family: inherit;
+  font-weight: 500;
+  color: #555566;
   white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
 }
 
-#btn-toggle-panels:hover {
-  background: #e8e8e8;
+.mode-btn:last-child {
+  border-right: none;
+}
+
+.mode-btn:hover:not(.active) {
+  background: #eaeaf2;
+  color: #1a1a2e;
+}
+
+.mode-btn.active {
+  background: var(--slider-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.panel-rail {
+  /* 24px so the target meets WCAG 2.5.8, which matters more than usual for a
+     pen-driven app. It is full height, so only the width was ever tight. */
+  width: 24px;
+  padding: 0;
+  border: none;
+  border-left: 1px solid #d0d0dc;
+  border-right: 1px solid #d0d0dc;
+  background: #ebebf0;
+  color: #888;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.panel-rail:hover {
+  background: #dcdce4;
+  color: #333;
+}
+
+.panel-rail:focus-visible {
+  outline: 2px solid var(--slider-accent);
+  outline-offset: -2px;
 }
 
 #curve-panel {
@@ -96,7 +150,6 @@ body {
   width: max-content;
   background: #ffffff;
   color: #1a1a2e;
-  border-right: 1px solid #d0d0dc;
 }
 
 #panel-left {
@@ -541,6 +594,7 @@ input[type="checkbox"]:disabled {
 }
 
 #draw-panel {
+  flex: 1;
   width: 100%;
   display: flex;
   flex-direction: column;

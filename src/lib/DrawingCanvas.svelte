@@ -1,9 +1,8 @@
 <script>
   import { onMount } from 'svelte';
-  import { applyPressureCurve } from './curveMath';
-  import { SMOOTHING_ORDER, SMOOTHING_TYPE, COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
+  import { PRESSURE_CONTROL } from './uiConstants';
   import { timestampedFileName } from './fileNames';
-  import DrawingCanvasHeader from './DrawingCanvasHeader.svelte';
+  import { createPressureProcessor, buildPointerInfo, EMPTY_POINTER_INFO } from './pressurePipeline';
 
   const CANVAS_BG = '#f5f5f0';
   const STROKE_PALETTE = [
@@ -14,30 +13,19 @@
   ];
   const DIVIDER_HEIGHT = 1;
 
-  const initialInfo = {
-    type: '---',
-    pressureRaw: '---',
-    pressureCurved: '---',
-    pressureSmoothed: '---',
-    pressureOutput: '---',
-    smoothingOrder: SMOOTHING_ORDER.SMOOTH_THEN_CURVE,
-    tiltX: '---',
-    tiltY: '---',
-    azimuth: '---',
-    altitude: '---',
-  };
-
   export let params;
   export let livePressure = null;
   export let liveRawPressure = null;
   export let liveOutputPressure = null;
-  export let leftPanelsCollapsed = false;
-  export let onToggleLeftPanels = () => {};
+  export let info = { ...EMPTY_POINTER_INFO };
+  // Brush controls live in the view toolbar above, outside this component.
+  export let brushSize = 40;
+  export let colorMode = 'black';
+  export let pressureControls = PRESSURE_CONTROL.SIZE;
 
-  let info = { ...initialInfo };
+  const processor = createPressureProcessor();
 
   let drawPanelEl;
-  let toolbarEl;
   let processedCanvasEl;
   let rawCanvasEl;
   let processedCtx;
@@ -50,16 +38,12 @@
   const appliedBacking = new WeakMap();
   let isDrawing = false;
   let lastPos = null;
-  let smoothedPressure = null;
   let drawZeroPressure = false;
-  let brushSize = 40;
-  let colorMode = COLOR_MODE.BLACK;
-  let pressureControls = PRESSURE_CONTROL.SIZE;
   let strokeColor = '#1a1a2e';
   let lastColorIndex = -1;
 
   function pickStrokeColor() {
-    if (colorMode === COLOR_MODE.BLACK) {
+    if (colorMode === 'black') {
       strokeColor = '#1a1a2e';
       return;
     }
@@ -69,56 +53,6 @@
     } while (index === lastColorIndex);
     lastColorIndex = index;
     strokeColor = STROKE_PALETTE[index];
-  }
-
-  function getSmoothedPressure(rawPressure) {
-    const type = params.smoothingType ?? SMOOTHING_TYPE.EMA;
-    if (type === SMOOTHING_TYPE.PASSTHROUGH) {
-      smoothedPressure = rawPressure;
-      return rawPressure;
-    }
-
-    const smoothing = Math.min(0.99, Math.max(0, Number(params.emaSmoothing ?? 0)));
-
-    if (smoothing <= 0) {
-      smoothedPressure = rawPressure;
-      return rawPressure;
-    }
-
-    if (smoothedPressure === null) {
-      smoothedPressure = rawPressure;
-      return rawPressure;
-    }
-
-    const alpha = 1 - smoothing;
-    smoothedPressure = smoothedPressure + alpha * (rawPressure - smoothedPressure);
-    return smoothedPressure;
-  }
-
-  function processPressure(rawPressure) {
-    const order = params.smoothingOrder ?? SMOOTHING_ORDER.SMOOTH_THEN_CURVE;
-
-    if (order === SMOOTHING_ORDER.CURVE_THEN_SMOOTH) {
-      const curved = applyPressureCurve(rawPressure, params);
-      const smoothed = getSmoothedPressure(curved);
-      return {
-        order,
-        preCurvePressure: rawPressure,
-        curvedPressure: curved,
-        smoothedPressure: smoothed,
-        outputPressure: smoothed,
-      };
-    }
-
-    const smoothed = getSmoothedPressure(rawPressure);
-    const curved = applyPressureCurve(smoothed, params);
-    return {
-      order: SMOOTHING_ORDER.SMOOTH_THEN_CURVE,
-      preCurvePressure: smoothed,
-      curvedPressure: curved,
-      smoothedPressure: smoothed,
-      outputPressure: curved,
-    };
   }
 
   function pointerToCanvasPos(pointerEvent, canvasEl) {
@@ -154,6 +88,9 @@
 
   function resizeDrawCanvases() {
     if (!processedCanvasEl || !processedCtx || !rawCanvasEl || !rawCtx || !drawPanelEl) return;
+    // Hidden while the other view is active: keep the current backing store so
+    // the strokes survive, exactly as when the left panels are collapsed.
+    if (drawPanelEl.clientWidth === 0) return;
 
     // Draw in CSS pixels while the backing store holds one texel per screen
     // pixel, so strokes are rasterised at full display resolution instead of
@@ -202,6 +139,10 @@
     return copy;
   }
 
+  export function clear() {
+    clearDrawCanvases();
+  }
+
   function clearDrawCanvases() {
     for (const [ctx, canvasEl] of [[processedCtx, processedCanvasEl], [rawCtx, rawCanvasEl]]) {
       if (!ctx || !canvasEl) continue;
@@ -226,37 +167,16 @@
     ctx.globalAlpha = 1;
   }
 
-  function updateInfo(pointerEvent, rawPressure, processedPressure) {
-    const toDegrees = (radians) => (radians * 180 / Math.PI).toFixed(1);
-
-    info = {
-      type: pointerEvent.pointerType || '---',
-      pressureRaw: rawPressure.toFixed(3),
-      pressureCurved: processedPressure.curvedPressure.toFixed(3),
-      pressureSmoothed: processedPressure.smoothedPressure.toFixed(3),
-      pressureOutput: processedPressure.outputPressure.toFixed(3),
-      smoothingOrder: processedPressure.order,
-      tiltX: `${Number(pointerEvent.tiltX ?? 0).toFixed(1)}°`,
-      tiltY: `${Number(pointerEvent.tiltY ?? 0).toFixed(1)}°`,
-      azimuth: `${toDegrees(Number(pointerEvent.azimuthAngle ?? 0))}°`,
-      altitude: `${toDegrees(Number(pointerEvent.altitudeAngle ?? 0))}°`,
-    };
-  }
-
-  function resetInfo() {
-    info = { ...initialInfo };
-  }
-
   function handlePointerDown(event, sourceCanvas) {
     pickStrokeColor();
     isDrawing = true;
     lastPos = pointerToCanvasPos(event, sourceCanvas);
     const rawPressure = Number(event.pressure ?? 0);
-    const processedPressure = processPressure(rawPressure);
+    const processedPressure = processor.process(rawPressure, params);
     liveRawPressure = rawPressure;
     livePressure = processedPressure.preCurvePressure;
     liveOutputPressure = processedPressure.outputPressure;
-    updateInfo(event, rawPressure, processedPressure);
+    info = buildPointerInfo(event, rawPressure, processedPressure);
 
     if (sourceCanvas?.setPointerCapture) {
       sourceCanvas.setPointerCapture(event.pointerId);
@@ -265,11 +185,11 @@
 
   function handlePointerMove(event, sourceCanvas) {
     const rawPressure = Number(event.pressure ?? 0);
-    const processedPressure = processPressure(rawPressure);
+    const processedPressure = processor.process(rawPressure, params);
     liveRawPressure = rawPressure;
     livePressure = processedPressure.preCurvePressure;
     liveOutputPressure = processedPressure.outputPressure;
-    updateInfo(event, rawPressure, processedPressure);
+    info = buildPointerInfo(event, rawPressure, processedPressure);
 
     if (!isDrawing) return;
 
@@ -291,11 +211,11 @@
   function stopDrawing() {
     isDrawing = false;
     lastPos = null;
-    smoothedPressure = null;
+    processor.reset();
     liveRawPressure = null;
     livePressure = null;
     liveOutputPressure = null;
-    resetInfo();
+    info = { ...EMPTY_POINTER_INFO };
   }
 
   async function copyCanvas(canvasEl) {
@@ -317,10 +237,25 @@
   }
 
   function onKeyDown(event) {
-    if (event.key === 'Delete' || event.key === 'Backspace') {
-      event.preventDefault();
-      clearDrawCanvases();
+    if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+
+    // Hidden behind the other view: the shortcut would silently wipe a drawing
+    // the user cannot even see.
+    if (!drawPanelEl || drawPanelEl.clientWidth === 0) return;
+
+    // Backspace belongs to whatever field has focus, such as NamedSlider's
+    // click-to-edit value.
+    const target = event.target;
+    if (target instanceof HTMLElement
+      && (target.isContentEditable
+        || target.tagName === 'INPUT'
+        || target.tagName === 'TEXTAREA'
+        || target.tagName === 'SELECT')) {
+      return;
     }
+
+    event.preventDefault();
+    clearDrawCanvases();
   }
 
   onMount(() => {
@@ -361,8 +296,6 @@
 </script>
 
 <div id="draw-panel" bind:this={drawPanelEl}>
-  <DrawingCanvasHeader bind:el={toolbarEl} {info} onClear={clearDrawCanvases} {brushSize} onBrushSizeChange={(v) => brushSize = v} {colorMode} onColorModeChange={(v) => colorMode = v} {pressureControls} onPressureControlsChange={(v) => pressureControls = v} {leftPanelsCollapsed} {onToggleLeftPanels} />
-
   <div class="split-canvas-wrap">
     <div class="split-canvas-label">
       <span>Pressure processing: ON</span>
