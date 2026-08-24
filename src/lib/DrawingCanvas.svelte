@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { applyPressureCurve } from './curveMath';
   import { SMOOTHING_ORDER, COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
+  import { timestampedFileName } from './fileNames';
   import DrawingCanvasHeader from './DrawingCanvasHeader.svelte';
 
   const CANVAS_BG = '#f5f5f0';
@@ -317,9 +318,9 @@
     }, 'image/png');
   }
 
-  function saveCanvas(canvasEl, filename) {
+  function saveCanvas(canvasEl, baseName) {
     const link = document.createElement('a');
-    link.download = filename;
+    link.download = timestampedFileName(baseName, 'png');
     link.href = canvasEl.toDataURL('image/png');
     link.click();
   }
@@ -380,7 +381,7 @@
       </label>
       <span class="canvas-export-buttons">
         <button type="button" class="canvas-export-btn" on:click={() => copyCanvas(processedCanvasEl)}>Copy</button>
-        <button type="button" class="canvas-export-btn" on:click={() => saveCanvas(processedCanvasEl, 'processed.png')}>Save</button>
+        <button type="button" class="canvas-export-btn" on:click={() => saveCanvas(processedCanvasEl, 'processed')}>Save</button>
       </span>
     </div>
     <canvas
@@ -398,7 +399,7 @@
       <span>Pressure processing: OFF</span>
       <span class="canvas-export-buttons">
         <button type="button" class="canvas-export-btn" on:click={() => copyCanvas(rawCanvasEl)}>Copy</button>
-        <button type="button" class="canvas-export-btn" on:click={() => saveCanvas(rawCanvasEl, 'unprocessed.png')}>Save</button>
+        <button type="button" class="canvas-export-btn" on:click={() => saveCanvas(rawCanvasEl, 'unprocessed')}>Save</button>
       </span>
     </div>
     <canvas

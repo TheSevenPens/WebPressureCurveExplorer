@@ -5,6 +5,7 @@
   import { MIN_APPROACH, HANDLE_MODE } from './uiConstants';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
   import { drawBackground, drawGrid as drawCanvasGrid, drawLabels as drawCanvasLabels, drawIndicator } from './canvasUtils';
+  import { timestampedFileName } from './fileNames';
   import PressureChartFormat from './PressureChartFormat.svelte';
   import PressureCurveControls from './PressureCurveControls.svelte';
   import PressureResponseChart from './PressureResponseChart.svelte';
@@ -890,10 +891,10 @@
 
   function saveChart(region) {
     const sourceCanvas = canvasToJpegCanvas(buildChartCanvas(region));
-    const fileName = region === 'full' ? 'pressure-curve-full.jpg' : 'pressure-curve-plot.jpg';
+    const baseName = region === 'full' ? 'pressure-curve-full' : 'pressure-curve-plot';
 
     const link = document.createElement('a');
-    link.download = fileName;
+    link.download = timestampedFileName(baseName, 'jpg');
     link.href = sourceCanvas.toDataURL('image/jpeg', 0.95);
     link.click();
   }
