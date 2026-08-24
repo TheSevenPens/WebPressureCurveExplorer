@@ -255,3 +255,39 @@ export function isIdentityCurve(params) {
   }
   return true;
 }
+
+const INVERT_ITERATIONS = 40;
+
+// Finds the input that the curve maps to `y`, by bisection. Used for the
+// effective-pressure indicator under curve-then-smooth, where smoothing runs
+// after the curve and so the output corresponds to no input the pipeline
+// actually evaluated. Assumes the curve is monotonic; a flat or otherwise
+// non-invertible curve returns fallbackX, which keeps the dot at the pressure
+// being applied rather than inventing a position.
+export function invertPressureCurve(y, params, fallbackX = 0) {
+  const yLo = applyPressureCurve(0, params);
+  const yHi = applyPressureCurve(1, params);
+
+  if (Math.abs(yHi - yLo) < 1e-9) return fallbackX;
+
+  const increasing = yHi > yLo;
+  if (increasing) {
+    if (y <= yLo) return 0;
+    if (y >= yHi) return 1;
+  } else {
+    if (y >= yLo) return 0;
+    if (y <= yHi) return 1;
+  }
+
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < INVERT_ITERATIONS; i++) {
+    const mid = (lo + hi) / 2;
+    if ((applyPressureCurve(mid, params) < y) === increasing) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  return (lo + hi) / 2;
+}

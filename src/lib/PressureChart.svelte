@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte';
-  import { applyPressureCurve, normalizeBezierPoints } from './curveMath';
+  import { applyPressureCurve, normalizeBezierPoints, invertPressureCurve } from './curveMath';
   import { CURVE_TYPE } from './curveTypes';
-  import { MIN_APPROACH, HANDLE_MODE } from './uiConstants';
+  import { MIN_APPROACH, HANDLE_MODE, SMOOTHING_ORDER } from './uiConstants';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
   import { drawBackground, drawGrid as drawCanvasGrid, drawLabels as drawCanvasLabels, drawIndicator } from './canvasUtils';
   import { timestampedFileName } from './fileNames';
@@ -597,16 +597,21 @@
     }
 
     if (showEffectiveIndicator && livePressure !== null) {
-      // Plot the pressure that actually drives the brush, rather than
-      // re-deriving it from the pre-curve input. Under smooth-then-curve the
-      // output is curve(smoothed), so the dot sits on the curve as before.
-      // Under curve-then-smooth the smoothing happens after the curve, so the
-      // output is not a point on the curve at all: the dot shares the raw
-      // dot's X and drops to the smoothed Y, and that vertical gap is the
-      // effect of smoothing. Without this the two dots coincide exactly and
-      // the effective one is painted over.
+      // Y is always the pressure that actually drives the brush.
       const mapped = liveOutputPressure ?? applyPressureCurve(livePressure, params);
-      drawIndicator(curveCtx, plotW, plotH, livePressure, mapped, '#14a050', 'rgba(20, 160, 80, 0.2)');
+
+      // X keeps the dot on the curve in both orders. Under smooth-then-curve
+      // livePressure is the smoothed input the pipeline really fed to the
+      // curve, so (livePressure, mapped) is on the curve by construction.
+      // Under curve-then-smooth the smoothing runs after the curve and the
+      // output corresponds to no input the pipeline evaluated, so show the
+      // input that would produce it.
+      const order = params.smoothingOrder ?? SMOOTHING_ORDER.SMOOTH_THEN_CURVE;
+      const effectiveX = order === SMOOTHING_ORDER.CURVE_THEN_SMOOTH
+        ? invertPressureCurve(mapped, params, livePressure)
+        : livePressure;
+
+      drawIndicator(curveCtx, plotW, plotH, effectiveX, mapped, '#14a050', 'rgba(20, 160, 80, 0.2)');
     }
 
     if (showRawIndicator && liveRawPressure !== null) {

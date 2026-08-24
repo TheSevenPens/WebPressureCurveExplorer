@@ -52,7 +52,7 @@ Largest component (~1040 lines). Renders the pressure curve chart on a Canvas 2D
 - Drawing the curve path for all curve types (passthrough, flat, basic/extended/sigmoid, bezier)
 - Draggable min/max control nodes for extended/sigmoid curves (basic pins its ranges, so it has no nodes)
 - Full bezier point editing (drag anchors and handles, add/remove points via buttons or context menu)
-- Live pressure indicators (raw = purple, effective = green) with dashed crosshair guides
+- Live pressure indicators (raw = purple, effective = green) with dashed crosshair guides. Both always lie on the curve — see [Live pressure indicators](#live-pressure-indicators)
 - Chart export (copy PNG to clipboard, save JPEG)
 - Hosting format toggles, curve controls, and the response chart
 
@@ -164,6 +164,7 @@ Both canvases are backed at real screen-pixel resolution (see [Canvas resolution
 Other exports and internal helpers:
 
 - `isIdentityCurve(params)` — samples the transform at 33 points and reports whether every input maps to itself; drives the Curve card's on/off title
+- `invertPressureCurve(y, params, fallbackX)` — bisection for the input that maps to `y`; used to place the effective indicator under curve-then-smooth
 - `rawCurveOutput(xNorm, params)` — power/sigmoid calculation, scaled to the output range
 - `rawCurveSlope(xNorm, params)` — numerical derivative (for Hermite transitions)
 - `cubicHermite(t, y0, m0, y1, m1)` — cubic Hermite interpolation
@@ -252,6 +253,19 @@ The `params` object:
 Each bezier point is `{ x, y, inX, inY, outX, outY, handleMode }`, where `handleMode` is `'broken'` or `'mirrored'` and points are sorted by `x`.
 
 User presets store a deep copy of this object in localStorage. Loading replaces `params` wholesale, so presets saved under an older schema still load — unknown keys simply go unread.
+
+## Live pressure indicators
+
+Two dots track live pen input on the curve chart:
+
+- **Raw pressure indicator** — purple, at `(rawPressure, curve(rawPressure))`.
+- **Effective pressure indicator** — green. Its Y is always `outputPressure`, the value that actually drives the brush. Its X depends on the smoothing order, so that the dot lies on the curve either way:
+  - **smooth-then-curve** — X is `preCurvePressure`, the smoothed input the pipeline really fed to the curve, so the point is on the curve by construction. The gap to the raw dot is the smoothing lag on the input.
+  - **curve-then-smooth** — smoothing runs after the curve, so the output corresponds to no input the pipeline ever evaluated. X comes from `invertPressureCurve`: the input that *would* produce this output. That X is derived rather than measured, and a steep curve can place it far from the raw dot.
+
+A non-invertible curve — flat, or any curve whose endpoints share an output — falls back to the pressure being applied, which keeps the dot on the flat line rather than inventing a position.
+
+Both charts draw the effective indicator from `outputPressure`; the response chart plots by Y alone, so the inversion does not apply there.
 
 ## Canvas resolution
 
