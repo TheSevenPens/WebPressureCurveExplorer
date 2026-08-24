@@ -28,16 +28,19 @@ The two panels sit in a CSS grid (`#layout`, `grid-template-columns: auto minmax
 |---|---|---|
 | Driver warning banner | `.driver-warning` | Full-width, dismissable, conditionally rendered |
 | Curve panel | `#curve-panel` | Left column, `width: max-content`, holds the two sub-columns below |
+| Panel rail | `.panel-rail` | Collapse control on the seam between the columns; its own grid column so it survives the collapse |
 | Chart column | `#panel-left` | Panel title, curve canvas, chart action buttons (Copy, Save, Chart Format), Pressure Response section |
 | Details panel | `#details-panel` | Fixed 247px, the only independently scrolling region |
 | View panel | `#view-panel` | Right column: both toolbars plus the active view |
 | Pen data toolbar | `.pen-data-toolbar` | Toolbar 1: live pen readouts, identical in both views |
-| View controls toolbar | `.view-controls-toolbar` | Toolbar 2: mode switch, collapse button, then view-specific controls |
+| View controls toolbar | `.view-controls-toolbar` | Toolbar 2: mode switch, then view-specific controls |
 | View body | `.view-body` | One per view; the inactive one carries `.hidden` |
 | Draw panel | `#draw-panel` | Canvas view body: the split canvas |
 | Split canvas | `.split-canvas-wrap` | Holds both `.draw-canvas` elements, each `flex: 1 1 0` so they share height evenly |
 
-When the left panels are collapsed, `#layout` gains a `left-collapsed` class that hides `#curve-panel` and switches the grid to a single `minmax(0, 1fr)` column. `PressureChart` stays mounted so its loaded data and section states survive the toggle.
+The grid has three columns: the curve panel, the rail, and the view panel. When the left panel is collapsed, `#layout` gains a `left-collapsed` class that hides `#curve-panel` and drops the grid to the rail plus `minmax(0, 1fr)`. `PressureChart` stays mounted so its section states survive the toggle.
+
+The collapse control lives on the seam rather than inside either pane, because a button inside the curve panel would disappear with it and could not bring it back. It is icon-only — a chevron with `aria-label` and `title` of "Hide panel" / "Show panel" — and 24px wide so the target meets WCAG 2.5.8, which matters for a pen-driven app.
 
 ## Component roles
 
@@ -88,7 +91,7 @@ Radio pair selecting where smoothing sits relative to the curve: smooth-then-cur
 The right column. Owns the two toolbars and swaps the view beneath them.
 
 - **Pen data toolbar** — live pen readouts, identical in both views, so it lives here rather than inside either one.
-- **View controls toolbar** — the Canvas / Pressure Response mode switch and the collapse-panels button, then a separator, then whichever control set the active view needs.
+- **View controls toolbar** — the Canvas / Pressure Response mode switch, then a separator, then whichever control set the active view needs.
 
 Both view bodies stay mounted and the inactive one is hidden with `display: none`, so switching modes does not discard the drawing or the loaded response data. Switching clears the live pressure values, since the outgoing view owned them and its last pointer event would otherwise freeze the indicators.
 

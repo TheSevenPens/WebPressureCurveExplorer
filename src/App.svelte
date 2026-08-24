@@ -81,14 +81,24 @@
     {liveOutputPressure}
     defaultParams={DEFAULT_PARAMS}
   />
+
+  <!-- Sits on the seam it moves, and in its own grid column so it survives
+       the collapse and can bring the panel back. -->
+  <button
+    class="panel-rail"
+    type="button"
+    aria-expanded={!leftPanelsCollapsed}
+    aria-label={leftPanelsCollapsed ? 'Show panel' : 'Hide panel'}
+    title={leftPanelsCollapsed ? 'Show panel' : 'Hide panel'}
+    on:click={() => leftPanelsCollapsed = !leftPanelsCollapsed}
+  >{leftPanelsCollapsed ? '›' : '‹'}</button>
+
   <ViewPanel
     bind:livePressure
     bind:liveRawPressure
     bind:liveOutputPressure
     bind:viewMode
     {params}
-    {leftPanelsCollapsed}
-    onToggleLeftPanels={() => leftPanelsCollapsed = !leftPanelsCollapsed}
     {showRawIndicator}
     {showEffectiveIndicator}
     responseData={pressureResponseData}

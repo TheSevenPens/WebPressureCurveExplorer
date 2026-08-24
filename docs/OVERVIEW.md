@@ -23,7 +23,7 @@ The app has a fixed left column and a right pane that switches between two views
 - **Min approach modes** (clamp vs cut) controlling how the curve behaves below the input minimum
 - **Live pressure indicators** on the chart showing raw (purple) and effective (green) pressure positions in real time
 - **Pressure response data** — load pen hardware measurement data (physical grams-force vs logical pressure %) from bundled samples or uploaded JSON files, with optional curve overlay, shown full-pane in Pressure Response view
-- **Collapsible controls** — a single toolbar button hides both left panels to maximize drawing area; strokes survive the toggle
+- **Collapsible left column** — a chevron on the seam between the panes hides the curve and controls panels; strokes survive the toggle
 - **Export** — copy charts and drawing canvases to clipboard as PNG or save as image files, with a local-time stamp in every saved filename
 - **Split canvas comparison** — draw once, see the stroke rendered with and without pressure processing simultaneously
 - **Brush controls** — adjustable brush size (1-500px), stroke color mode (black or random), pressure controls (size or opacity)

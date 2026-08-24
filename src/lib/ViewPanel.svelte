@@ -11,8 +11,6 @@
   export let livePressure = null;
   export let liveRawPressure = null;
   export let liveOutputPressure = null;
-  export let leftPanelsCollapsed = false;
-  export let onToggleLeftPanels = () => {};
   export let showRawIndicator = true;
   export let showEffectiveIndicator = true;
 
@@ -64,13 +62,6 @@
       >Pressure Response</button>
     </div>
 
-    <button
-      id="btn-toggle-panels"
-      type="button"
-      aria-pressed={leftPanelsCollapsed}
-      title={leftPanelsCollapsed ? 'Show the curve and controls panels' : 'Hide the curve and controls panels for maximum canvas area'}
-      on:click={onToggleLeftPanels}
-    >{leftPanelsCollapsed ? '» Show controls' : '« Hide controls'}</button>
 
     <span class="toolbar-sep"></span>
 
