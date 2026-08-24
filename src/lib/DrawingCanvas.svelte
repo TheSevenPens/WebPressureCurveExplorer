@@ -29,6 +29,8 @@
   export let params;
   export let livePressure = null;
   export let liveRawPressure = null;
+  export let leftPanelsCollapsed = false;
+  export let onToggleLeftPanels = () => {};
 
   let info = { ...initialInfo };
 
@@ -181,16 +183,33 @@
     // being upscaled by the compositor.
     for (const [ctx, canvasEl] of [[processedCtx, processedCanvasEl], [rawCtx, rawCanvasEl]]) {
       const rect = canvasEl.getBoundingClientRect();
+      const previous = snapshotCanvas(canvasEl);
+
       canvasEl.width = backingWidth;
       canvasEl.height = backingHeight;
+
+      // Setting width/height resets the context, so repaint the background and
+      // restore existing strokes at 1:1 before reapplying the scale transform.
+      ctx.fillStyle = CANVAS_BG;
+      ctx.fillRect(0, 0, backingWidth, backingHeight);
+      if (previous) ctx.drawImage(previous, 0, 0);
+
       ctx.setTransform(
         rect.width > 0 ? backingWidth / rect.width : 1, 0,
         0, rect.height > 0 ? backingHeight / rect.height : 1,
         0, 0,
       );
     }
+  }
 
-    clearDrawCanvases();
+  // Copy of the current backing store, used to carry strokes across a resize.
+  function snapshotCanvas(canvasEl) {
+    if (canvasEl.width === 0 || canvasEl.height === 0) return null;
+    const copy = document.createElement('canvas');
+    copy.width = canvasEl.width;
+    copy.height = canvasEl.height;
+    copy.getContext('2d').drawImage(canvasEl, 0, 0);
+    return copy;
   }
 
   function clearDrawCanvases() {
@@ -350,7 +369,7 @@
 </script>
 
 <div id="draw-panel" bind:this={drawPanelEl}>
-  <DrawingCanvasHeader bind:el={toolbarEl} {info} onClear={clearDrawCanvases} {brushSize} onBrushSizeChange={(v) => brushSize = v} {colorMode} onColorModeChange={(v) => colorMode = v} {pressureControls} onPressureControlsChange={(v) => pressureControls = v} />
+  <DrawingCanvasHeader bind:el={toolbarEl} {info} onClear={clearDrawCanvases} {brushSize} onBrushSizeChange={(v) => brushSize = v} {colorMode} onColorModeChange={(v) => colorMode = v} {pressureControls} onPressureControlsChange={(v) => pressureControls = v} {leftPanelsCollapsed} {onToggleLeftPanels} />
 
   <div class="split-canvas-wrap">
     <div class="split-canvas-label">

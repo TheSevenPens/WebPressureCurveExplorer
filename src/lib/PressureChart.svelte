@@ -382,6 +382,10 @@
   function resizeCurveCanvas() {
     if (!curveCanvasEl || !curvePanelEl || !curveCtx) return;
 
+    // While the panel is collapsed it has no layout box; skip so the cached
+    // size survives and expanding restores the chart without a re-fit.
+    if (curvePanelEl.clientWidth === 0) return;
+
     const size = Math.max(160, curvePanelEl.clientWidth - 24);
     curveDpr = window.devicePixelRatio || 1;
 
