@@ -5,6 +5,7 @@
   import { MIN_APPROACH, HANDLE_MODE, SMOOTHING_ORDER, VIEW_MODE } from './uiConstants';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
   import { drawBackground, drawGrid as drawCanvasGrid, drawLabels as drawCanvasLabels, drawIndicator } from './canvasUtils';
+  import { RAW_INDICATOR, EFFECTIVE_INDICATOR } from './indicatorStyles';
   import { timestampedFileName } from './fileNames';
   import PressureChartFormat from './PressureChartFormat.svelte';
   import PressureCurveControls from './PressureCurveControls.svelte';
@@ -613,12 +614,12 @@
         ? invertPressureCurve(mapped, params, livePressure)
         : livePressure;
 
-      drawIndicator(curveCtx, plotW, plotH, effectiveX, mapped, '#14a050', 'rgba(20, 160, 80, 0.2)');
+      drawIndicator(curveCtx, plotW, plotH, effectiveX, mapped, EFFECTIVE_INDICATOR.solid, EFFECTIVE_INDICATOR.guide);
     }
 
     if (showRawIndicator && liveRawPressure !== null) {
       const mapped = applyPressureCurve(liveRawPressure, params);
-      drawIndicator(curveCtx, plotW, plotH, liveRawPressure, mapped, '#8833cc', 'rgba(130, 60, 200, 0.2)');
+      drawIndicator(curveCtx, plotW, plotH, liveRawPressure, mapped, RAW_INDICATOR.solid, RAW_INDICATOR.guide);
     }
   }
 
