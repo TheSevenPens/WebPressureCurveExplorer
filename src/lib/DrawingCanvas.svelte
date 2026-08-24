@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { PRESSURE_CONTROL } from './uiConstants';
+  import { COLOR_MODE, PRESSURE_CONTROL } from './uiConstants';
   import { timestampedFileName } from './fileNames';
   import { createPressureProcessor, buildPointerInfo, EMPTY_POINTER_INFO } from './pressurePipeline';
 
@@ -11,7 +11,6 @@
     '#dcbeff', '#9a6324', '#800000', '#aaffc3', '#808000',
     '#000075',
   ];
-  const DIVIDER_HEIGHT = 1;
 
   export let params;
   export let livePressure = null;
@@ -20,7 +19,7 @@
   export let info = { ...EMPTY_POINTER_INFO };
   // Brush controls live in the view toolbar above, outside this component.
   export let brushSize = 40;
-  export let colorMode = 'black';
+  export let colorMode = COLOR_MODE.BLACK;
   export let pressureControls = PRESSURE_CONTROL.SIZE;
 
   const processor = createPressureProcessor();
@@ -43,7 +42,7 @@
   let lastColorIndex = -1;
 
   function pickStrokeColor() {
-    if (colorMode === 'black') {
+    if (colorMode === COLOR_MODE.BLACK) {
       strokeColor = '#1a1a2e';
       return;
     }

@@ -3,6 +3,12 @@
   --slider-track: #c6c6c6;
   --checkbox-accent: #5e85a5;
   --param-value: #464646;
+
+  --control-bg: #f0f0f8;
+  --control-border: #c8c8d8;
+  --control-fg: #555566;
+  --ink: #1a1a2e;
+  --title-accent: #2255cc;
 }
 
 * {
@@ -93,7 +99,7 @@ body {
   font-size: 12px;
   font-family: inherit;
   font-weight: 500;
-  color: #555566;
+  color: var(--control-fg);
   white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
@@ -104,7 +110,7 @@ body {
 
 .mode-btn:hover:not(.active) {
   background: #eaeaf2;
-  color: #1a1a2e;
+  color: var(--ink);
 }
 
 .mode-btn.active {
@@ -149,7 +155,7 @@ body {
   flex-shrink: 0;
   width: max-content;
   background: #ffffff;
-  color: #1a1a2e;
+  color: var(--ink);
 }
 
 #panel-left {
@@ -176,7 +182,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #2255cc;
+  color: var(--title-accent);
   letter-spacing: 0.5px;
 }
 
@@ -233,7 +239,7 @@ body {
 }
 
 .param-name {
-  color: #555566;
+  color: var(--control-fg);
   font-size: 12px;
 }
 
@@ -246,9 +252,9 @@ body {
 select {
   font-family: inherit;
   font-size: 12px;
-  color: #555566;
-  background: #f0f0f8;
-  border: 1px solid #c8c8d8;
+  color: var(--control-fg);
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   padding: 4px 6px;
   cursor: pointer;
@@ -285,9 +291,9 @@ input[type="checkbox"]:disabled {
 
 .action-btn {
   padding: 5px 10px;
-  background: #f0f0f8;
-  color: #555566;
-  border: 1px solid #c8c8d8;
+  background: var(--control-bg);
+  color: var(--control-fg);
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -297,7 +303,7 @@ input[type="checkbox"]:disabled {
 
 .action-btn:hover {
   background: #e4e4f0;
-  color: #1a1a2e;
+  color: var(--ink);
 }
 
 .dropdown-menu {
@@ -307,7 +313,7 @@ input[type="checkbox"]:disabled {
   left: 0;
   z-index: 100;
   background: #ffffff;
-  border: 1px solid #c8c8d8;
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   min-width: 148px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
@@ -331,7 +337,7 @@ input[type="checkbox"]:disabled {
 }
 
 .dropdown-menu button:hover {
-  background: #f0f0f8;
+  background: var(--control-bg);
 }
 
 /* Popover panel for the chart format options. Same anchoring as
@@ -344,7 +350,7 @@ input[type="checkbox"]:disabled {
   right: 0;
   z-index: 100;
   background: #ffffff;
-  border: 1px solid #c8c8d8;
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   padding: 8px 10px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
@@ -359,7 +365,7 @@ input[type="checkbox"]:disabled {
   position: fixed;
   z-index: 300;
   background: #ffffff;
-  border: 1px solid #c8c8d8;
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   min-width: 136px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
@@ -379,7 +385,7 @@ input[type="checkbox"]:disabled {
 }
 
 .canvas-context-menu button:hover:not(:disabled) {
-  background: #f0f0f8;
+  background: var(--control-bg);
 }
 
 .canvas-context-menu button:disabled {
@@ -437,9 +443,9 @@ input[type="checkbox"]:disabled {
   width: 28px;
   height: 28px;
   padding: 0;
-  background: #f0f0f8;
-  color: #555566;
-  border: 1px solid #c8c8d8;
+  background: var(--control-bg);
+  color: var(--control-fg);
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -449,10 +455,10 @@ input[type="checkbox"]:disabled {
 
 .btn-reset:hover {
   background: #e4e4f0;
-  color: #1a1a2e;
+  color: var(--ink);
 }
 
-.custom-points-actions {
+.bezier-points-actions {
   display: flex;
   gap: 6px;
 }
@@ -460,9 +466,9 @@ input[type="checkbox"]:disabled {
 .small-action-btn {
   flex: 1;
   padding: 5px 8px;
-  background: #f0f0f8;
-  color: #555566;
-  border: 1px solid #c8c8d8;
+  background: var(--control-bg);
+  color: var(--control-fg);
+  border: 1px solid var(--control-border);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -471,7 +477,7 @@ input[type="checkbox"]:disabled {
 
 .small-action-btn:hover:not(:disabled) {
   background: #e4e4f0;
-  color: #1a1a2e;
+  color: var(--ink);
 }
 
 .small-action-btn:disabled {
@@ -497,7 +503,7 @@ input[type="checkbox"]:disabled {
   padding: 4px 8px;
   font-size: 12px;
   font-family: inherit;
-  background: #f0f0f8;
+  background: var(--control-bg);
   border: 1px solid #d0d0dd;
   border-radius: 4px;
   cursor: pointer;
@@ -603,17 +609,7 @@ input[type="checkbox"]:disabled {
   overflow: hidden;
 }
 
-#toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 12px;
-  background: #f0f0f0;
-  border-bottom: 1px solid #ccc;
-  flex-shrink: 0;
-}
-
-#btn-clear {
+.btn-clear {
   padding: 4px 10px;
   background: #fff;
   border: 1px solid #bbb;
@@ -623,7 +619,7 @@ input[type="checkbox"]:disabled {
   font-family: inherit;
 }
 
-#btn-clear:hover {
+.btn-clear:hover {
   background: #e8e8e8;
 }
 

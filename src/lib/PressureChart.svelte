@@ -8,7 +8,6 @@
   import { timestampedFileName } from './fileNames';
   import PressureChartFormat from './PressureChartFormat.svelte';
   import PressureCurveControls from './PressureCurveControls.svelte';
-  import CollapsibleSection from './CollapsibleSection.svelte';
 
   const CURVE_COLOR = '#000000';
   const MIN_CONTROL_NODE_COLOR = 'rgb(255, 0, 136)';
@@ -16,7 +15,8 @@
   const MAX_CONTROL_NODE_COLOR = '#00d0ff';
   const MAX_CONTROL_NODE_GUIDE = 'rgba(0, 0, 0, 0.25)';
 
-  const NODE_RADIUS = 8;
+  const NODE_HIT_RADIUS = 8;
+  const NODE_DRAW_RADIUS = 6;
   const HANDLE_RADIUS = 5;
 
   export let params;
@@ -106,7 +106,7 @@
       if (!center) continue;
       const dx = cssX - center.x;
       const dy = cssY - center.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= NODE_RADIUS) return i;
+      if (Math.sqrt(dx * dx + dy * dy) <= NODE_HIT_RADIUS) return i;
     }
     return null;
   }
@@ -221,7 +221,7 @@
       const center = nodeCenter(key);
       const dx = cssX - center.x;
       const dy = cssY - center.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= NODE_RADIUS) return key;
+      if (Math.sqrt(dx * dx + dy * dy) <= NODE_HIT_RADIUS) return key;
     }
     return null;
   }
@@ -589,7 +589,7 @@
 
         curveCtx.fillStyle = node.color;
         curveCtx.beginPath();
-        curveCtx.arc(node.x, node.y, 6, 0, Math.PI * 2);
+        curveCtx.arc(node.x, node.y, NODE_DRAW_RADIUS, 0, Math.PI * 2);
         curveCtx.fill();
 
         curveCtx.strokeStyle = '#ffffff';

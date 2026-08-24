@@ -7,6 +7,7 @@
   import PressureSmoothingControls from './PressureSmoothingControls.svelte';
   import SmoothingOrderControls from './SmoothingOrderControls.svelte';
   import CollapsibleSection from './CollapsibleSection.svelte';
+  import TypeSelectRow from './TypeSelectRow.svelte';
 
   export let params;
   export let defaultParams;
@@ -100,8 +101,16 @@
     patchParams({ [key]: value });
   }
 
-  function handleCurveTypeChange(event) {
-    const newType = event.currentTarget.value;
+  const CURVE_TYPE_OPTIONS = [
+    { value: CURVE_TYPE.PASSTHROUGH, label: 'Passthrough' },
+    { value: CURVE_TYPE.FLAT, label: 'Flat' },
+    { value: CURVE_TYPE.BASIC, label: 'Basic' },
+    { value: CURVE_TYPE.EXTENDED, label: 'Extended' },
+    { value: CURVE_TYPE.SIGMOID, label: 'Sigmoid' },
+    { value: CURVE_TYPE.BEZIER, label: 'Bezier' },
+  ];
+
+  function handleCurveTypeChange(newType) {
     const updates = { curveType: newType };
     if (newType === CURVE_TYPE.BASIC) {
       updates.inputMinimum = 0;
@@ -153,19 +162,14 @@
 <div id="details-panel">
   <div id="details-controls">
     <CollapsibleSection title="Curve ({onOff(curveHasEffect)})" open={true}>
-    <div class="type-row">
-      <select value={params.curveType} on:change={handleCurveTypeChange}>
-        <option value={CURVE_TYPE.PASSTHROUGH}>Passthrough</option>
-        <option value={CURVE_TYPE.FLAT}>Flat</option>
-        <option value={CURVE_TYPE.BASIC}>Basic</option>
-        <option value={CURVE_TYPE.EXTENDED}>Extended</option>
-        <option value={CURVE_TYPE.SIGMOID}>Sigmoid</option>
-        <option value={CURVE_TYPE.BEZIER}>Bezier</option>
-      </select>
-      {#if params.curveType !== CURVE_TYPE.PASSTHROUGH}
-        <button class="btn-reset" on:click={resetToDefaults}>↺</button>
-      {/if}
-    </div>
+    <TypeSelectRow
+      value={params.curveType}
+      options={CURVE_TYPE_OPTIONS}
+      onChange={handleCurveTypeChange}
+      onReset={resetToDefaults}
+      resetHiddenFor={CURVE_TYPE.PASSTHROUGH}
+      resetTitle="Reset curve to defaults"
+    />
 
     {#if bezierActive}
       <div class="param">

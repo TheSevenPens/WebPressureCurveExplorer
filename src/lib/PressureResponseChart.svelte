@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { applyPressureCurve } from './curveMath';
   import { PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM } from './canvasConstants';
-  import { drawBackground, drawGrid, drawLabels, drawIndicator } from './canvasUtils';
+  import { drawBackground, drawGrid, drawLabels } from './canvasUtils';
 
   const RESPONSE_COLOR = '#000000';
 

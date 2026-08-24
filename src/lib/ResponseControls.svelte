@@ -81,7 +81,7 @@
 />
 
 {#if data}
-  <button id="btn-clear" type="button" on:click={clearData}>Clear</button>
+  <button class="btn-clear" type="button" on:click={clearData}>Clear</button>
 
   <label class="info-item checkbox-row">
     <input
