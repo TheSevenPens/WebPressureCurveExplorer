@@ -266,7 +266,7 @@
       <PressureSmoothingControls bind:params />
     </CollapsibleSection>
 
-    <CollapsibleSection title="Processing">
+    <CollapsibleSection title="Processing Order">
       <SmoothingOrderControls bind:params />
     </CollapsibleSection>
 

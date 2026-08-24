@@ -60,14 +60,14 @@ The **DetailsPanel** — all sections are collapsible via CollapsibleSection. Co
   - **extended/sigmoid**: Curve Amount slider, read-only node values table (driven by chart nodes), min approach radio buttons
   - **bezier**: preset dropdown, add/remove point buttons
 - **Smoothing**: Smoothing Amount slider
-- **Processing**: smooth-then-curve vs curve-then-smooth radio buttons (default: curve-then-smooth)
+- **Processing Order**: smooth-then-curve vs curve-then-smooth radio buttons (default: curve-then-smooth)
 - **Presets**: save (via modal dialog)/load/delete user presets via localStorage
 
 ### PressureSmoothingControls.svelte
 Thin wrapper around NamedSlider for the pressure EMA amount.
 
 ### SmoothingOrderControls.svelte
-Radio pair selecting where smoothing sits relative to the curve: smooth-then-curve or curve-then-smooth. Its own DetailsPanel card ("Processing"), separate from the smoothing amount.
+Radio pair selecting where smoothing sits relative to the curve: smooth-then-curve or curve-then-smooth. Its own DetailsPanel card ("Processing Order"), separate from the smoothing amount.
 
 ### PressureResponsePanel.svelte
 Panel for loading pen hardware pressure response data. Offers a unified dropdown with three bundled Wacom KP-504E samples (WAP.0038, WAP.0047, WAP.0050) and an "Upload JSON..." option. Includes a "Show effect of curve" checkbox. Fires callbacks to PressureChart when data or checkbox state changes. Hosted in the curve panel's collapsible Pressure Response section.
